@@ -9,6 +9,7 @@
 #include "lpc_synth.h"
 #include "custom_synth.h"
 #include "lsm303d.h"
+#include "battery_level.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -25,11 +26,12 @@
 #define BlinkLED(); { Pin_LED_Write(1); CyDelayUs(30); Pin_LED_Write(0); } // blink LED indicator - for debugging/testing
 
 /* Task Priority Level */
-#define TASK_GPS_PRIO        (configMAX_PRIORITIES - 1)
-#define TASK_PATH_START_PRIO (configMAX_PRIORITIES - 2)
-#define TASK_PATH_PRIO       (configMAX_PRIORITIES - 2)
-#define TASK_DIRECTION_PRIO  (configMAX_PRIORITIES - 3)
-#define TASK_SPEECH_PRIO     (configMAX_PRIORITIES - 4)
+#define TASK_GPS_PRIO           (configMAX_PRIORITIES - 1)
+#define TASK_PATH_START_PRIO    (configMAX_PRIORITIES - 2)
+#define TASK_PATH_PRIO          (configMAX_PRIORITIES - 2)
+#define TASK_DIRECTION_PRIO     (configMAX_PRIORITIES - 3)
+#define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 4)
+#define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 5)
 
 /*-----------------------------------------------------------*/
 /* Global Varaibles */
@@ -78,6 +80,7 @@ TaskHandle_t vTaskPathStartHandle = NULL;
 TaskHandle_t vTaskPathHandle = NULL;
 TaskHandle_t vTaskSpeechHandle = NULL;
 TaskHandle_t vTaskDirectionHandle = NULL;
+TaskHandle_t vTaskBatteryLevelHandle = NULL;
 
 /* Semaphore Handlers */
 SemaphoreHandle_t xGPSSemaphore;
@@ -97,6 +100,7 @@ static void vTaskPathStart (void *pvParameter);
 static void vTaskPath ( void *pvParameter );
 static void vTaskSpeech ( void *pvParameter );
 static void vTaskDirection ( void *pvParameter );
+static void vTaskBatteryLevel ( void *pvParameter );
 
 /*-----------------------------------------------------------*/
 /* Interrupt Service Routines */
@@ -200,6 +204,9 @@ void PSOC_Start( void )
     compassStart();
     compassInitialize();
     
+    /* Start Battery Level Monitor */
+    batteryLevelMonitorStart();
+    
     /* Turn on System Output */
     ON();
     
@@ -249,6 +256,13 @@ int main( void )
         err = xTaskCreate ( vTaskSpeech, "task speech", 200, (void*) 0, TASK_SPEECH_PRIO, &vTaskSpeechHandle );
         if ( err != pdPASS ){
             sprintf( tempStr, "Failed to Create Task Speech\n" );
+            UART_PutString( tempStr );
+            while(1){};
+        }
+        
+        err = xTaskCreate ( vTaskBatteryLevel, "task battery level", 200, (void*) 0, TASK_BATTERY_LEVEL_PRIO, &vTaskBatteryLevelHandle );
+        if ( err != pdPASS ){
+            sprintf( tempStr, "Failed to Create Task Battery Level\n" );
             UART_PutString( tempStr );
             while(1){};
         }
@@ -611,10 +625,12 @@ static void vTaskDirection ( void *pvParameter )
 {
     (void) pvParameter;
     double bearing, difference, direction;
+    const TickType_t xDelay1000ms = pdMS_TO_TICKS(1000UL);
     
     while(1)
     {
-        bearing = heading();
+        /* UNCOMMENT when working on the compass */
+        /*bearing = heading();
         if (bearing > M_PI) bearing = bearing - 2*M_PI;
         
         difference = GPSbearing(latitudeInDec, longitudeInDec ,checkpointLat[checkpointDest], checkpointLon[checkpointDest]);
@@ -622,12 +638,42 @@ static void vTaskDirection ( void *pvParameter )
         direction = difference-bearing; // calculate the direction need to walk in to get to destination        
        
         sprintf(tempStr, "Direction: %lf \n", difference);
-        UART_PutString( tempStr );
+        UART_PutString( tempStr );*/
+        vTaskDelay(xDelay1000ms);
     }
 }
 
+/*-----------------------------------------------------------*/
+static void vTaskBatteryLevel ( void *pvParameter )
+{
+    (void) pvParameter;
+    int batteryLevelValue = 0;
+    const TickType_t xDelay5000ms = pdMS_TO_TICKS(5000UL);
+    
+    while(1)
+    {
+        batteryLevelValue = readBatteryLevel();
+        
+        sprintf(tempStr, "Battery Level: %d%%\n", batteryLevelValue);
+        UART_PutString(tempStr);
+        
+        SPEECH();
+        
+        //Prevent the RTOS kernel swapping out the task.
+        vTaskSuspendAll();
+        //Interrupts will still operate and the tick count will be maintained.
+        
+        sayBatteryPercent(batteryLevelValue);
+        
+        // Restart the RTOS kernel.  We want to force a context switch, 
+        //but there is no point if resuming the scheduler caused a context switch already.
+        if( !xTaskResumeAll () )
+        {
+            taskYIELD ();
+        }
+        OFF();
+        vTaskDelay(xDelay5000ms);
+    }
+    
+}
 /* [] END OF FILE */
-
-
-
-
