@@ -585,49 +585,41 @@ void sayBatteryLevel()
 * Summary:
 *    
 *******************************************************************************/
-void sayBatteryPercent(float number)
+void sayBatteryPercent(int number)
 {
-    if (number >= 10 && number < 20)
-    {
+    switch(number)
+    {   
+        case 10:
         synth_say(TEN);
-    }
-    else if (number >= 20 && number < 30)
-    {
+        break;
+        case 20:
         synth_say(TWENTY);
-    }
-    else if (number >= 30 && number < 40)
-    {
+        break;
+        case 30:
         synth_say(THIRTY);
-    }
-    else if (number >= 40 && number < 50)
-    {
+        break;
+        case 40:
         synth_say(FOURTY);
-    }
-    else if (number >= 50 && number < 60)
-    {
+        break;
+        case 50:
         synth_say(FIFTY);
-    }
-    else if (number >= 60 && number < 70)
-    {
+        break;
+        case 60:
         synth_say(SIXTY);
-    }
-    else if (number >= 70 && number < 80)
-    {
+        break;
+        case 70:
         synth_say(SEVENTY);
-    }
-    else if (number >= 80 && number < 90)
-    {
+        break;
+        case 80:
         synth_say(EIGHTY);
-    }
-    else if (number >= 90 && number < 100)
-    {
+        break;
+        case 90:
         synth_say(NINETY); 
+        break;
+        default:
+        /* error */
+        break;
     }
-    else 
-    {
-        /* error in number*/
-    }
-    
     synth_say(PERCENT);
     return;
 }
