@@ -75,3 +75,28 @@ static float readBatteryVoltage()
     
     return volts;
 }
+
+/*******************************************************************************
+* Function Name: batteryLevel
+********************************************************************************
+* Summary
+*   Matched battery voltage to appropriate percentage level.
+*******************************************************************************/
+int readBatteryLevel()
+{
+    float volts = 0.0;
+    volts = readBatteryVoltage();
+    
+    if ( volts > 8.40 || volts <= 6.00 ) return 0; /* 0 indicates an error */
+    else if (volts < 8.40 && volts >= 8.16) return 90;
+    else if (volts < 8.16 && volts >= 7.92) return 80;
+    else if (volts < 7.92 && volts >= 7.68) return 70;
+    else if (volts < 7.68 && volts >= 7.44) return 60;
+    else if (volts < 7.44 && volts >= 7.20) return 50;
+    else if (volts < 7.20 && volts >= 6.96) return 50;
+    else if (volts < 6.96 && volts >= 6.72) return 40;
+    else if (volts < 6.72 && volts >= 6.48) return 30;
+    else if (volts < 6.48 && volts >= 6.24) return 20;
+    else return 10;
+}
+/* [] END OF FILE */
