@@ -24,6 +24,7 @@
 *******************************************************************************/
 #include <project.h>
 #include <stdio.h>
+#include <battery_level.h>
 
 /*******************************************************************************
 *   Private Function Declarations
@@ -66,7 +67,7 @@ static float readBatteryVoltage()
         adcResult = ADC_Battery_GetResult16();
         
         /* convert value to Volts */
-        volts = ADC_Battery_CountsTo_Volts(adcResult) / 0.5735;
+        volts = ADC_Battery_CountsTo_Volts(adcResult) / VOLTAGE_DIVIDER_RATIO;
         
         /* for testing */
         sprintf(tempStr, "Battery volts: %.2f\n", volts);
