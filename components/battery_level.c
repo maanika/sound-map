@@ -26,6 +26,17 @@
 #include <stdio.h>
 
 /*******************************************************************************
+*   Private Function Declarations
+*******************************************************************************/
+static float readBatteryVoltage();
+
+/*******************************************************************************
+*   Variable definitions
+*******************************************************************************/
+/* for debugging - uncomment when in need */
+static char tempStr[100];
+
+/*******************************************************************************
 * Function Name: batteryLevelMonitorStart
 ********************************************************************************
 * Summary:
@@ -34,4 +45,33 @@
 void batteryLevelMonitorStart()
 {
     ADC_Battery_Start();
+}
+
+/*******************************************************************************
+* Function Name: readBatteryVoltage
+********************************************************************************
+* Summary:
+*   Reads battery voltage.
+*******************************************************************************/
+static float readBatteryVoltage()
+{
+    int16 adcResult = 0;
+    float volts = 0.00;
+    
+    ADC_Battery_StartConvert();
+    
+    /* Wait for get ADC converted value */
+    if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT))
+    {
+        adcResult = ADC_Battery_GetResult16();
+        
+        /* convert value to Volts */
+        volts = ADC_Battery_CountsTo_Volts(adcResult) / 0.5735;
+        
+        /* for testing */
+        sprintf(tempStr, "Battery volts: %.2f\n", volts);
+        UART_PutString(tempStr);
+    }
+    
+    return volts;
 }
