@@ -35,7 +35,7 @@ static float readBatteryVoltage();
 *   Variable definitions
 *******************************************************************************/
 /* for debugging - uncomment when in need */
-static char tempStr[100];
+static char temp[100];
 
 /*******************************************************************************
 * Function Name: batteryLevelMonitorStart
@@ -70,8 +70,8 @@ static float readBatteryVoltage()
         volts = ADC_Battery_CountsTo_Volts(adcResult) / VOLTAGE_DIVIDER_RATIO;
 
         /* for testing */
-        sprintf(tempStr, "Battery volts: %.2f\n", volts);
-        UART_PutString(tempStr);
+        sprintf(temp, "Battery volts: %.2f\n", volts);
+        UART_PutString(temp);
     }
     return volts;
 }

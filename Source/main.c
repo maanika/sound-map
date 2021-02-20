@@ -345,7 +345,7 @@ static void vTaskGPS ( void *pvParameter )
         longitudeInDec = min2dec( longitude );
         latitudeInDec = min2dec( latitude ) * -1;
         
-        sprintf(tempStr, "longitude: %Lf    latitude: %LF\n", longitudeInDec, latitudeInDec);
+        sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
         UART_PutString( tempStr );
         
         if ( longitudeInDec == 0 && latitudeInDec == 0 )
@@ -507,7 +507,7 @@ static void vTaskPath( void *pvParameter )
     double diffDistance;
     const TickType_t xDelay2000ms = pdMS_TO_TICKS(2000UL);
     int nextCheckpoint;
-    SOUND(); // sound always on as long as task path is running - ***place this in sound task when written***
+    //SOUND(); // sound always on as long as task path is running - ***place this in sound task when written***
     while (1)
     {
         if ( checkpointOperation == 0 )
@@ -559,7 +559,7 @@ static void vTaskPath( void *pvParameter )
                 isr_button_press_ClearPending(); 
                 isr_button_press_StartEx( ISR_Button_Press );  // enable button press inerrupt
                 checkpointDestSelected = pdFALSE; // no destination selected
-                firstFix = 0; // to create vTaskPathStart once in vTaskGPS
+                firstFix = 0; // to create vTaskPathStart once again in vTaskGPS
                 buttonCount = -1; // reset button count
                 vTaskDelete(vTaskDirectionHandle);
                 vTaskDelete(NULL); // delete current task - and all others
@@ -621,6 +621,7 @@ static void vTaskSpeech ( void *pvParameter )
         {
             taskYIELD ();
         }
+        OFF();
     }
 
 }
@@ -653,7 +654,7 @@ static void vTaskBatteryLevel ( void *pvParameter )
 {
     (void) pvParameter;
     int batteryLevelValue = 0;
-    const TickType_t xDelay5000ms = pdMS_TO_TICKS(5000UL);
+    const TickType_t xDelay5000ms = pdMS_TO_TICKS(10000UL);
 
     while(1)
     {
