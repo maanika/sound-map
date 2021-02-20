@@ -262,14 +262,14 @@ int main( void )
             UART_PutString( tempStr );
             while(1){};
         }
-        
+
         err = xTaskCreate ( vTaskBatteryLevel, "task battery level", TASK_STK_SIZE, (void*) 0, TASK_BATTERY_LEVEL_PRIO, &vTaskBatteryLevelHandle );
         if ( err != pdPASS ){
             sprintf( tempStr, "Failed to Create Task Battery Level\n" );
             UART_PutString( tempStr );
             while(1){};
         }
-        
+
         sprintf( tempStr, "Main: Start\n\n" );
         UART_PutString( tempStr );
         
@@ -559,6 +559,7 @@ static void vTaskPath( void *pvParameter )
                 isr_button_press_ClearPending(); 
                 isr_button_press_StartEx( ISR_Button_Press );  // enable button press inerrupt
                 checkpointDestSelected = pdFALSE; // no destination selected
+                atDestination = pdFALSE; // not at destination - reset
                 firstFix = 0; // to create vTaskPathStart once again in vTaskGPS
                 buttonCount = -1; // reset button count
                 vTaskDelete(vTaskDirectionHandle);

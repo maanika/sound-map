@@ -47,5 +47,5 @@
     int readBatteryLevel();
 
 #endif
-    
+
 /* [] END OF FILE */
