@@ -654,7 +654,7 @@ static void vTaskBatteryLevel ( void *pvParameter )
 {
     (void) pvParameter;
     int batteryLevelValue = 0;
-    const TickType_t xDelay5000ms = pdMS_TO_TICKS(10000UL);
+    const TickType_t xDelay10000ms = pdMS_TO_TICKS(10000UL);
 
     while(1)
     {
@@ -678,7 +678,7 @@ static void vTaskBatteryLevel ( void *pvParameter )
             taskYIELD ();
         }
         OFF();
-        vTaskDelay(xDelay5000ms);
+        vTaskDelay(xDelay10000ms);
     }
 }
 /* [] END OF FILE */
