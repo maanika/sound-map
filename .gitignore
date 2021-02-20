@@ -10,6 +10,7 @@ Debug/
 Release/
 Export/
 CortexM3/
+components/DDS24_lib/
 codegentemp
 Generated_Source
 *_datasheet.pdf
