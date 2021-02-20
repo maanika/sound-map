@@ -342,6 +342,8 @@ static void vTaskGPS ( void *pvParameter )
         longitudeInDec = min2dec( longitude );
         latitudeInDec = min2dec( latitude ) * -1;
         
+        sprintf(tempStr, "longitude: %Lf    latitude: %LF\n", longitudeInDec, latitudeInDec);
+        UART_PutString( tempStr );
         
         if ( longitudeInDec == 0 && latitudeInDec == 0 )
         {
