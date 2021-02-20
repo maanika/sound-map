@@ -254,7 +254,7 @@ int main( void )
             UART_PutString( tempStr );
             while(1){};
         }
-
+      
         err = xTaskCreate ( vTaskSpeech, "task speech", TASK_STK_SIZE, (void*) 0, TASK_SPEECH_PRIO, &vTaskSpeechHandle );
         if ( err != pdPASS ){
             sprintf( tempStr, "Failed to Create Task Speech\n" );
