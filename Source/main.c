@@ -31,6 +31,9 @@
 #define TASK_DIRECTION_PRIO  (configMAX_PRIORITIES - 3)
 #define TASK_SPEECH_PRIO     (configMAX_PRIORITIES - 4)
 
+/* Task Stack Size */
+#define TASK_STK_SIZE 300
+
 /*-----------------------------------------------------------*/
 /* Global Varaibles */
 /* PC UART variables - for testing/debugging*/
@@ -239,14 +242,14 @@ int main( void )
     {
         BaseType_t err;
         
-        err = xTaskCreate( vTaskGPS, "task gps", 200, (void*) 0, TASK_GPS_PRIO, &vTaskGPSHandle );
+        err = xTaskCreate( vTaskGPS, "task gps", TASK_STK_SIZE, (void*) 0, TASK_GPS_PRIO, &vTaskGPSHandle );
         if ( err != pdPASS ){
             sprintf( tempStr, "Failed to Create Task GPS\n" );
             UART_PutString( tempStr );
             while(1){};
         }
         
-        err = xTaskCreate ( vTaskSpeech, "task speech", 200, (void*) 0, TASK_SPEECH_PRIO, &vTaskSpeechHandle );
+        err = xTaskCreate ( vTaskSpeech, "task speech", TASK_STK_SIZE, (void*) 0, TASK_SPEECH_PRIO, &vTaskSpeechHandle );
         if ( err != pdPASS ){
             sprintf( tempStr, "Failed to Create Task Speech\n" );
             UART_PutString( tempStr );
@@ -349,13 +352,13 @@ static void vTaskGPS ( void *pvParameter )
         {
             firstFix = 1; // run one time
             //checkpointDestSelected = pdFAIL; /*can selct mutiple times until fix happens */
-            BaseType_t err = xTaskCreate( vTaskPathStart, "task path start", 200, (void*) 0, TASK_PATH_START_PRIO, &vTaskPathStartHandle );
+            BaseType_t err = xTaskCreate( vTaskPathStart, "task path start", TASK_STK_SIZE, (void*) 0, TASK_PATH_START_PRIO, &vTaskPathStartHandle );
             if ( err != pdPASS ){
                 sprintf(tempStr, "Failed to Create Task Path Start\n");
                 UART_PutString( tempStr );
                 while(1){};
             }
-            err = xTaskCreate( vTaskDirection, "task direction", 200, (void*) 0, TASK_DIRECTION_PRIO, &vTaskDirectionHandle );
+            err = xTaskCreate( vTaskDirection, "task direction", TASK_STK_SIZE, (void*) 0, TASK_DIRECTION_PRIO, &vTaskDirectionHandle );
             if ( err != pdPASS ){
                 sprintf(tempStr, "Failed to Create Task Path Start\n");
                 UART_PutString( tempStr );
@@ -471,7 +474,7 @@ static void vTaskPathStart ( void *pvParameter )
         }
         
         BaseType_t err;
-        err = xTaskCreate( vTaskPath, "task path", 200, (void*) 0, TASK_PATH_PRIO, &vTaskPathHandle );
+        err = xTaskCreate( vTaskPath, "task path", TASK_STK_SIZE, (void*) 0, TASK_PATH_PRIO, &vTaskPathHandle );
         if ( err != pdPASS ){
             sprintf( tempStr, "Failed to Create Task Path\n" );
             UART_PutString( tempStr );
