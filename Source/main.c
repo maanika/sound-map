@@ -24,7 +24,6 @@
 #define SPEECH();   { AMux_1_FastSelect(1); AMux_2_FastSelect(1); } // Speech sythesiser output - SPEECH for short
 
 #define BlinkLED(); { Pin_LED_Write(1); CyDelayUs(30); Pin_LED_Write(0); } // blink LED indicator - for debugging/testing
-
 /* Task Priority Level */
 #define TASK_GPS_PRIO           (configMAX_PRIORITIES - 1)
 #define TASK_PATH_START_PRIO    (configMAX_PRIORITIES - 2)
@@ -32,6 +31,8 @@
 #define TASK_DIRECTION_PRIO     (configMAX_PRIORITIES - 3)
 #define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 4)
 #define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 5)
+
+
 
 /*-----------------------------------------------------------*/
 /* Global Varaibles */
