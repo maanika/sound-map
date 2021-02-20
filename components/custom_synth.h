@@ -74,12 +74,7 @@ void sayFix();
 // Brief: Vocalize given number parameter.
 // Param:  number Number to vocalize.
 // Return: none 
-void sayBatteryLevel();
-
-// Brief: Vocalize given number parameter.
-// Param:  number Number to vocalize.
-// Return: none 
-void sayBatteryPercent(float number);
+void sayBatteryPercent(int number);
 
 
 void sayWelocome();

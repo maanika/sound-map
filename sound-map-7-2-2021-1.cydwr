@@ -304,6 +304,7 @@
     </Group>
     <Group key="Pin">
       <Data key="02f2cf2c-2c7a-49df-9246-7a3435c21be3" value="SCL_1" />
+      <Data key="3fd78e59-70f1-452e-b3e6-2e63c2868210" value="Battery_pin" />
       <Data key="8d318d8b-cf7b-4b6b-b02c-ab1c5c49d0ba" value="SW_1" />
       <Data key="41e88c34-7617-4f20-ba9e-510ae4991a7f" value="Tx_1" />
       <Data key="51c64ea6-7178-4512-8ba3-0930d4c0593d" value="SW_2" />
@@ -315,6 +316,7 @@
       <Data key="06743373-a67a-4f3b-883a-1f15b37ccae7" value="Rx_1" />
       <Data key="77715107-f8d5-47e5-a629-0fb83101ac6b" value="Pin_3_7" />
       <Data key="81412601-4f9d-489f-a173-75e56b27e37f" value="Pin_DDS24Out" />
+      <Data key="bc9bbc67-d7f8-43cb-80c9-9415958ddc6b/16a808f6-2e13-45b9-bce0-b001c8655113" value="ADC_Battery_Bypass" />
       <Data key="beca5e2d-f70f-4900-a4db-7eca1ed3126e/8b77a6c4-10a0-4390-971c-672353e2a49c" value="USBUART_Dm" />
       <Data key="beca5e2d-f70f-4900-a4db-7eca1ed3126e/618a72fc-5ddd-4df5-958f-a3d55102db42" value="USBUART_Dp" />
       <Data key="c5c021fb-e525-451f-978d-8589dd36d2a5" value="Pin_3_5" />
@@ -3410,6 +3412,11 @@
     <Group key="02f2cf2c-2c7a-49df-9246-7a3435c21be3">
       <Group key="0">
         <Data key="Port Format" value="12,0" />
+      </Group>
+    </Group>
+    <Group key="3fd78e59-70f1-452e-b3e6-2e63c2868210">
+      <Group key="0">
+        <Data key="Port Format" value="1,6" />
       </Group>
     </Group>
     <Group key="8d318d8b-cf7b-4b6b-b02c-ab1c5c49d0ba">
