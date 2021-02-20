@@ -239,7 +239,6 @@ int main( void )
     
     isr_button_hold_ClearPending();    /* Cancel any pending isr_RxSignal interrupts */
     isr_button_hold_StartEx( ISR_Button_Hold ); /* Enable the interrupt service routine */
-
     
     /* Creating Semaphores and Mutxes */
     xGPSSemaphore = xSemaphoreCreateCounting( 10, 0 );
