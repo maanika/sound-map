@@ -33,7 +33,7 @@
 #define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 4)
 #define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 5)
 
-/* Task Priority Level */
+/* Task Stack Size */
 #define TASK_STK_SIZE 300
 
 /*-----------------------------------------------------------*/
@@ -209,7 +209,7 @@ void PSOC_Start( void )
     
     /* Start Battery Level Monitor */
     batteryLevelMonitorStart();
-    
+
     /* Turn on System Output */
     ON();
     
@@ -255,7 +255,7 @@ int main( void )
             UART_PutString( tempStr );
             while(1){};
         }
-        
+
         err = xTaskCreate ( vTaskSpeech, "task speech", TASK_STK_SIZE, (void*) 0, TASK_SPEECH_PRIO, &vTaskSpeechHandle );
         if ( err != pdPASS ){
             sprintf( tempStr, "Failed to Create Task Speech\n" );
@@ -654,23 +654,23 @@ static void vTaskBatteryLevel ( void *pvParameter )
     (void) pvParameter;
     int batteryLevelValue = 0;
     const TickType_t xDelay5000ms = pdMS_TO_TICKS(5000UL);
-    
+
     while(1)
     {
         batteryLevelValue = readBatteryLevel();
-        
+
         sprintf(tempStr, "Battery Level: %d%%\n", batteryLevelValue);
         UART_PutString(tempStr);
-        
+
         SPEECH();
-        
+
         //Prevent the RTOS kernel swapping out the task.
         vTaskSuspendAll();
         //Interrupts will still operate and the tick count will be maintained.
-        
+
         sayBatteryPercent(batteryLevelValue);
-        
-        // Restart the RTOS kernel.  We want to force a context switch, 
+
+        // Restart the RTOS kernel.  We want to force a context switch,
         //but there is no point if resuming the scheduler caused a context switch already.
         if( !xTaskResumeAll () )
         {
@@ -679,6 +679,5 @@ static void vTaskBatteryLevel ( void *pvParameter )
         OFF();
         vTaskDelay(xDelay5000ms);
     }
-    
 }
 /* [] END OF FILE */

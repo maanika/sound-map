@@ -22,17 +22,17 @@
 *******************************************************************************/
 #ifndef BATTERY_LEVEL_H
 	#define BATTERY_LEVEL_H
-    
+
 /*******************************************************************************
 *   Included Headers
 *******************************************************************************/
     #include <project.h>
-    
+
 /*******************************************************************************
 *   Macros and #define Constants
 *******************************************************************************/
     #define VOLTAGE_DIVIDER_RATIO 0.5735
-    
+
 /*******************************************************************************
 *   Function Declarations
 *******************************************************************************/
@@ -40,12 +40,12 @@
     // Param: none.
     // Return: none
     void batteryLevelMonitorStart();
-    
+
     // Brief: Converts battery voltage to a percentage level.
     // Param: none.
     // Return: battery percentage.
     int readBatteryLevel();
-    
+
 #endif
     
 /* [] END OF FILE */

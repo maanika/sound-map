@@ -58,22 +58,21 @@ static float readBatteryVoltage()
 {
     int16 adcResult = 0;
     float volts = 0.00;
-    
+
     ADC_Battery_StartConvert();
-    
+
     /* Wait for get ADC converted value */
     if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT))
     {
         adcResult = ADC_Battery_GetResult16();
-        
+
         /* convert value to Volts */
         volts = ADC_Battery_CountsTo_Volts(adcResult) / VOLTAGE_DIVIDER_RATIO;
-        
+
         /* for testing */
         sprintf(tempStr, "Battery volts: %.2f\n", volts);
         UART_PutString(tempStr);
     }
-    
     return volts;
 }
 
@@ -87,7 +86,7 @@ int readBatteryLevel()
 {
     float volts = 0.0;
     volts = readBatteryVoltage();
-    
+
     if ( volts > 8.40 || volts <= 6.00 ) return 0; /* 0 indicates an error */
     else if (volts < 8.40 && volts >= 8.16) return 90;
     else if (volts < 8.16 && volts >= 7.92) return 80;
