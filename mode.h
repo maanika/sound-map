@@ -1,6 +1,6 @@
 /*******************************************************************************
 * Written by Maanika Kenneth Koththigoda, for PSoC5LP
-* Last Modified on 19/02/2021
+* Last Modified on 21/02/2021
 *
 * File:     mode.h
 * Version:  1.0.0
@@ -28,6 +28,5 @@
 *******************************************************************************/
     #define DEBUG_PRINT_MODE 1
     #define OBJ_DETECT_MODE  0
-    
+
 #endif
-    

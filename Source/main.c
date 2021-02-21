@@ -141,8 +141,10 @@ CY_ISR( ISR_Button_Press )
             break;
             default: 
             //error
-            sprintf(tempStr, "Error in button presses\n");
-            UART_PutString(tempStr);
+            #if DEBUG_PRINT_MODE == 1
+                sprintf(tempStr, "Error in button presses\n");
+                UART_PutString(tempStr);
+            #endif
             break;
         }
     }
@@ -162,23 +164,31 @@ CY_ISR( ISR_Button_Hold )
     switch( buttonCount % 3 ) {
         case 0:
         checkpointDestName = 'C';
-        sprintf(tempStr, "Campus Center Destination Selected\n");
-        UART_PutString(tempStr);
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Campus Center Destination Selected\n");
+            UART_PutString(tempStr);
+        #endif
         break;
         case 1:
         checkpointDestName = 'H';
-        sprintf(tempStr, "Campbell Hall Destination Selected\n");
-        UART_PutString(tempStr);
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Campbell Hall Destination Selected\n");
+            UART_PutString(tempStr);
+        #endif
         break;
         case 2:
         checkpointDestName = 'L';
-        sprintf(tempStr, "Hargrave Library Destination Selected\n");
-        UART_PutString(tempStr);
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Hargrave Library Destination Selected\n");
+            UART_PutString(tempStr);
+        #endif
         break;
         default: 
         //error
-        sprintf(tempStr, "Error in button hold\n");
-        UART_PutString(tempStr);
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Error in button hold\n");
+            UART_PutString(tempStr);
+        #endif
         break;
     }
     checkpointDestSelected = pdTRUE;
@@ -251,35 +261,44 @@ int main( void )
         
         err = xTaskCreate( vTaskGPS, "task gps", TASK_STK_SIZE, (void*) 0, TASK_GPS_PRIO, &vTaskGPSHandle );
         if ( err != pdPASS ){
-            sprintf( tempStr, "Failed to Create Task GPS\n" );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Failed to Create Task GPS\n" );
+                UART_PutString( tempStr );
+            #endif
             while(1){};
         }
       
         err = xTaskCreate ( vTaskSpeech, "task speech", TASK_STK_SIZE, (void*) 0, TASK_SPEECH_PRIO, &vTaskSpeechHandle );
         if ( err != pdPASS ){
-            sprintf( tempStr, "Failed to Create Task Speech\n" );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Failed to Create Task Speech\n" );
+                UART_PutString( tempStr );
+            #endif
             while(1){};
         }
 
         err = xTaskCreate ( vTaskBatteryLevel, "task battery level", TASK_STK_SIZE, (void*) 0, TASK_BATTERY_LEVEL_PRIO, &vTaskBatteryLevelHandle );
         if ( err != pdPASS ){
-            sprintf( tempStr, "Failed to Create Task Battery Level\n" );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Failed to Create Task Battery Level\n" );
+                UART_PutString( tempStr );
+            #endif
             while(1){};
         }
-
-        sprintf( tempStr, "Main: Start\n\n" );
-        UART_PutString( tempStr );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf( tempStr, "Main: Start\n\n" );
+            UART_PutString( tempStr );
+        #endif
         
         vTaskStartScheduler();  /* Should never return, add reset after */
     }
     else 
     {
         /* failed to create semaphore or mutex */
-        sprintf( tempStr, "failed to create semaphore or mutex" );
-        UART_PutString( tempStr );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf( tempStr, "failed to create semaphore or mutex" );
+            UART_PutString( tempStr );
+        #endif
         while(1){};
     }
     
@@ -344,10 +363,10 @@ static void vTaskGPS ( void *pvParameter )
         
         longitudeInDec = min2dec( longitude );
         latitudeInDec = min2dec( latitude ) * -1;
-        
-        sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
-        UART_PutString( tempStr );
-        
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
+            UART_PutString( tempStr );
+        #endif
         if ( longitudeInDec == 0 && latitudeInDec == 0 )
         {
             SPEECH();
@@ -370,14 +389,18 @@ static void vTaskGPS ( void *pvParameter )
             //checkpointDestSelected = pdFAIL; /*can selct mutiple times until fix happens */
             BaseType_t err = xTaskCreate( vTaskPathStart, "task path start", TASK_STK_SIZE, (void*) 0, TASK_PATH_START_PRIO, &vTaskPathStartHandle );
             if ( err != pdPASS ){
-                sprintf(tempStr, "Failed to Create Task Path Start\n");
-                UART_PutString( tempStr );
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf(tempStr, "Failed to Create Task Path Start\n");
+                    UART_PutString( tempStr );
+                #endif
                 while(1){};
             }
             err = xTaskCreate( vTaskDirection, "task direction", TASK_STK_SIZE, (void*) 0, TASK_DIRECTION_PRIO, &vTaskDirectionHandle );
             if ( err != pdPASS ){
-                sprintf(tempStr, "Failed to Create Task Path Start\n");
-                UART_PutString( tempStr );
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf(tempStr, "Failed to Create Task Path Start\n");
+                    UART_PutString( tempStr );
+                #endif
                 while(1){};
             }
         }
@@ -435,8 +458,10 @@ static void vTaskPathStart ( void *pvParameter )
                         /* error */
                         break;
                 }
-                sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
-                UART_PutString( tempStr );
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
+                    UART_PutString( tempStr );
+                #endif
                 break;
             case 1: /* H3 is the starting point */
                 checkpointCurrent = 3;
@@ -458,8 +483,10 @@ static void vTaskPathStart ( void *pvParameter )
                         /* error */
                         break;
                 }
-                sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
-                UART_PutString( tempStr );
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
+                    UART_PutString( tempStr );
+                #endif
                 break;
             case 2: /* H8 is the starting point */
                 checkpointCurrent = 8;
@@ -481,8 +508,10 @@ static void vTaskPathStart ( void *pvParameter )
                         /* error */
                         break;
                 }
-                sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
-                UART_PutString( tempStr );
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
+                    UART_PutString( tempStr );
+                #endif
                 break;
             default:
                 /* error */
@@ -492,8 +521,10 @@ static void vTaskPathStart ( void *pvParameter )
         BaseType_t err;
         err = xTaskCreate( vTaskPath, "task path", TASK_STK_SIZE, (void*) 0, TASK_PATH_PRIO, &vTaskPathHandle );
         if ( err != pdPASS ){
-            sprintf( tempStr, "Failed to Create Task Path\n" );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Failed to Create Task Path\n" );
+                UART_PutString( tempStr );
+            #endif
             while(1){};
         }
         vTaskDelete( NULL );
@@ -552,8 +583,10 @@ static void vTaskPath( void *pvParameter )
                 }
                 OFF();
                 // arrived at destination
-                sprintf( tempStr, "Arrived at destination \n" );
-                UART_PutString( tempStr );
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "Arrived at destination \n" );
+                    UART_PutString( tempStr );
+                #endif
                 
                 /* RESTART PROGRAM - works :) */
                 isr_button_press_ClearPending(); 
@@ -566,12 +599,12 @@ static void vTaskPath( void *pvParameter )
                 vTaskDelete(NULL); // delete current task - and all others
             }
         }
-        sprintf( tempStr, "Current Checkpoint: H%d \nNext Checkpoint:    H%d \n", checkpointName[checkpointCurrent], checkpointName[nextCheckpoint] );
-        UART_PutString( tempStr );
-        
-        sprintf( tempStr, "Distance to next checkpoint: %.2f \n", diffDistance );
-        UART_PutString( tempStr);
-        
+        #if DEBUG_PRINT_MODE == 1
+            sprintf( tempStr, "Current Checkpoint: H%d \nNext Checkpoint:    H%d \n", checkpointName[checkpointCurrent], checkpointName[nextCheckpoint] );
+            UART_PutString( tempStr );
+            sprintf( tempStr, "Distance to next checkpoint: %.2f \n", diffDistance );
+            UART_PutString( tempStr);
+        #endif
         vTaskDelay( xDelay2000ms );
     }
 }
@@ -585,8 +618,10 @@ static void vTaskSpeech ( void *pvParameter )
     {
         if ( xTaskNotifyWait((uint32_t)0, (uint32_t)0, &ulNotificationValue, portMAX_DELAY ) == pdTRUE )
         {
-            sprintf( tempStr, "Notification received: %d", ulNotificationValue );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Notification received: %d", ulNotificationValue );
+                UART_PutString( tempStr );
+            #endif
         }
 
         SPEECH();
@@ -597,23 +632,31 @@ static void vTaskSpeech ( void *pvParameter )
         switch (ulNotificationValue)
         {
             case 1:
-            sprintf( tempStr, "     Campus centre\n" );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "     Campus centre\n" );
+                UART_PutString( tempStr );
+            #endif
             sayCampusCentre();
             break;
             case 2:
-            sprintf( tempStr, "     Campbell Hall\n" );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "     Campbell Hall\n" );
+                UART_PutString( tempStr );
+            #endif
             sayCampbellHall();
             break;
             case 3:
-            sprintf( tempStr, "     Hargrave Library\n" );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "     Hargrave Library\n" );
+                UART_PutString( tempStr );
+            #endif
             sayHargraveLibrary();
             break;
             default:
-            sprintf( tempStr, "Error in notification value received \n" );
-            UART_PutString( tempStr );
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Error in notification value received \n" );
+                UART_PutString( tempStr );
+            #endif
             break;
         }
         // Restart the RTOS kernel.  We want to force a context switch, 
@@ -660,10 +703,10 @@ static void vTaskBatteryLevel ( void *pvParameter )
     while(1)
     {
         batteryLevelValue = readBatteryLevel();
-
-        sprintf(tempStr, "Battery Level: %d%%\n", batteryLevelValue);
-        UART_PutString(tempStr);
-
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Battery Level: %d%%\n", batteryLevelValue);
+            UART_PutString(tempStr);
+        #endif
         SPEECH();
 
         //Prevent the RTOS kernel swapping out the task.
