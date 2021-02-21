@@ -25,6 +25,7 @@
 #include <project.h>
 #include <stdio.h>
 #include <battery_level.h>
+#include <mode.h>
 
 /*******************************************************************************
 *   Private Function Declarations

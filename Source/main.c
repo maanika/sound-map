@@ -10,6 +10,7 @@
 #include "custom_synth.h"
 #include "lsm303d.h"
 #include "battery_level.h"
+#include "mode.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
