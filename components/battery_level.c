@@ -25,6 +25,7 @@
 #include <project.h>
 #include <stdio.h>
 #include <battery_level.h>
+#include <mode.h>
 
 /*******************************************************************************
 *   Private Function Declarations
@@ -69,9 +70,10 @@ static float readBatteryVoltage()
         /* convert value to Volts */
         volts = ADC_Battery_CountsTo_Volts(adcResult) / VOLTAGE_DIVIDER_RATIO;
 
-        /* for testing */
-        sprintf(temp, "Battery volts: %.2f\n", volts);
-        UART_PutString(temp);
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(temp, "Battery volts: %.2f\n", volts);
+            UART_PutString(temp);
+        #endif
     }
     return volts;
 }
