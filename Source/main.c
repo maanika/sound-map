@@ -27,15 +27,22 @@
 #define BlinkLED(); { Pin_LED_Write(1); CyDelayUs(30); Pin_LED_Write(0); } // blink LED indicator - for debugging/testing
 
 /* Task Priority Level */
-#define TASK_GPS_PRIO           (configMAX_PRIORITIES - 1)
-#define TASK_PATH_START_PRIO    (configMAX_PRIORITIES - 2)
-#define TASK_PATH_PRIO          (configMAX_PRIORITIES - 2)
-#define TASK_DIRECTION_PRIO     (configMAX_PRIORITIES - 3)
-#define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 4)
-#define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 5)
+#define TASK_GPS_PRIO           (configMAX_PRIORITIES - 2)
+#define TASK_PATH_START_PRIO    (configMAX_PRIORITIES - 3)
+#define TASK_PATH_PRIO          (configMAX_PRIORITIES - 3)
+#define TASK_DIRECTION_PRIO     (configMAX_PRIORITIES - 4)
+#define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 5)
+#define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 6)
+#define TASK_BUTTON_PRIO        (configMAX_PRIORITIES - 1)
 
 /* Task Stack Size */
-#define TASK_STK_SIZE 300
+#define TASK_GPS_STK_SIZE           300
+#define TASK_SPEECH_STK_SIZE        300
+#define TASK_PATH_START_STK_SIZE    300
+#define TASK_PATH_STK_SIZE          300
+#define TASK_DIRECTION_STK_SIZE     100
+#define TASK_BATTERY_LEVEL_STK_SIZE 300
+#define TASK_BUTTON_STK_SIZE        300
 
 /*-----------------------------------------------------------*/
 /* Global Varaibles */
@@ -74,8 +81,6 @@ int firstFix = 0;
 
 /* Button variables */
 int buttonCount = -1; // button count mod 3 = ans, if 0-Campus centre, 1-Campbell Hall, 2- Hargrave
-int initialPowerUp = 0; // solve INITIAL POWER UP that causes positive edge on the button (no need to reset)
-
 
 /*-----------------------------------------------------------*/
 /* Task Handlers */
@@ -85,13 +90,14 @@ TaskHandle_t vTaskPathHandle = NULL;
 TaskHandle_t vTaskSpeechHandle = NULL;
 TaskHandle_t vTaskDirectionHandle = NULL;
 TaskHandle_t vTaskBatteryLevelHandle = NULL;
+TaskHandle_t vTaskButtonHandle = NULL;
 
 /* Semaphore Handlers */
 SemaphoreHandle_t xGPSSemaphore;
 SemaphoreHandle_t xUARTMutex;
 
 /* Queue Handlers */
-
+QueueHandle_t xButtonTimeQueue;
 
 /*-----------------------------------------------------------*/
 /* Function declarations */
@@ -105,6 +111,7 @@ static void vTaskPath ( void *pvParameter );
 static void vTaskSpeech ( void *pvParameter );
 static void vTaskDirection ( void *pvParameter );
 static void vTaskBatteryLevel ( void *pvParameter );
+static void vTaskButton ( void *pvParameter );
 
 /*-----------------------------------------------------------*/
 /* Interrupt Service Routines */
@@ -118,81 +125,27 @@ CY_ISR( ISR_GPS_Received )
 
 /*-----------------------------------------------------------*/
 /* Interrupt Service Routines */
-CY_ISR( ISR_Button_Press )
-{
-    BaseType_t xHigherPriorityTaskWoken;
-    xHigherPriorityTaskWoken = pdFALSE;
-    
-    if (initialPowerUp == 0)
-    {
-        initialPowerUp = 1;
-    }
-    else {
-        buttonCount++;
-        switch( buttonCount % 3 ) {
-            case 0:
-            xTaskNotifyFromISR(vTaskSpeechHandle, (uint32_t)(1<<0), (eNotifyAction)eSetValueWithOverwrite, &xHigherPriorityTaskWoken );
-            break;
-            case 1:
-            xTaskNotifyFromISR(vTaskSpeechHandle, (uint32_t)(1<<1), (eNotifyAction)eSetValueWithOverwrite, &xHigherPriorityTaskWoken );
-            break;
-            case 2:
-            xTaskNotifyFromISR(vTaskSpeechHandle, (uint32_t)(1<<1)|(1<<0), (eNotifyAction)eSetValueWithOverwrite, &xHigherPriorityTaskWoken );
-            break;
-            default: 
-            //error
-            #if DEBUG_PRINT_MODE == 1
-                sprintf(tempStr, "Error in button presses\n");
-                UART_PutString(tempStr);
-            #endif
-            break;
-        }
-    }
-    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-}
 
-/*-----------------------------------------------------------*/
-CY_ISR( ISR_Button_Hold )
+CY_ISR( ISR_Button )
 {
     BaseType_t xHigherPriorityTaskWoken;
+    BaseType_t xStatus;
     xHigherPriorityTaskWoken = pdFALSE;
     
-    /* stop button press isr once destination verified */
-    /* ENSURE this interrupt has a higher priority level than isr_nutton_press */
-    isr_button_press_Stop();
+    /* Find how long the button was pressed for */
+    uint16_t counter = Timer_1_ReadCapture();
+    float buttonHoldTime;
+    buttonHoldTime = (float) ((uint32_t)(65536 - counter)) * 0.001;
     
-    switch( buttonCount % 3 ) {
-        case 0:
-        checkpointDestName = 'C';
-        #if DEBUG_PRINT_MODE == 1
-            sprintf(tempStr, "Campus Center Destination Selected\n");
-            UART_PutString(tempStr);
-        #endif
-        break;
-        case 1:
-        checkpointDestName = 'H';
-        #if DEBUG_PRINT_MODE == 1
-            sprintf(tempStr, "Campbell Hall Destination Selected\n");
-            UART_PutString(tempStr);
-        #endif
-        break;
-        case 2:
-        checkpointDestName = 'L';
-        #if DEBUG_PRINT_MODE == 1
-            sprintf(tempStr, "Hargrave Library Destination Selected\n");
-            UART_PutString(tempStr);
-        #endif
-        break;
-        default: 
-        //error
-        #if DEBUG_PRINT_MODE == 1
-            sprintf(tempStr, "Error in button hold\n");
-            UART_PutString(tempStr);
-        #endif
-        break;
-    }
-    checkpointDestSelected = pdTRUE;
+    /* Reset Timer_1 */
+    Control_Reg_1_Write(1); 
+    CyDelayUs(1000);
+    Control_Reg_1_Write(0);
     
+    /* Send  button hold time */
+    xQueueSendToFrontFromISR(xButtonTimeQueue, (void*)&buttonHoldTime, portMAX_DELAY );
+
+    xTaskResumeFromISR(vTaskButtonHandle);
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );  
 }
 
@@ -245,21 +198,19 @@ int main( void )
     isr_GPS_Received_ClearPending();    /* Cancel any pending isr_RxSignal interrupts */
     isr_GPS_Received_StartEx( ISR_GPS_Received ); /* Enable the interrupt service routine */
     
-    isr_button_press_ClearPending();    /* Cancel any pending isr_RxSignal interrupts */
-    isr_button_press_StartEx( ISR_Button_Press ); /* Enable the interrupt service routine */
-    
-    isr_button_hold_ClearPending();    /* Cancel any pending isr_RxSignal interrupts */
-    isr_button_hold_StartEx( ISR_Button_Hold ); /* Enable the interrupt service routine */
+    isr_button_ClearPending();    /* Cancel any pending isr_RxSignal interrupts */
+    isr_button_StartEx( ISR_Button ); /* Enable the interrupt service routine */
     
     /* Creating Semaphores and Mutxes */
     xGPSSemaphore = xSemaphoreCreateCounting( 10, 0 );
     xUARTMutex = xSemaphoreCreateMutex();
+    xButtonTimeQueue = xQueueCreate( 1, sizeof(portFLOAT) );
     
-    if ( xGPSSemaphore != NULL || xUARTMutex != NULL )
+    if ( xGPSSemaphore != NULL || xUARTMutex != NULL || xButtonTimeQueue != NULL )
     {
         BaseType_t err;
         
-        err = xTaskCreate( vTaskGPS, "task gps", TASK_STK_SIZE, (void*) 0, TASK_GPS_PRIO, &vTaskGPSHandle );
+        err = xTaskCreate( vTaskGPS, "task gps", TASK_GPS_STK_SIZE, (void*) 0, TASK_GPS_PRIO, &vTaskGPSHandle );
         if ( err != pdPASS ){
             #if DEBUG_PRINT_MODE == 1
                 sprintf( tempStr, "Failed to Create Task GPS\n" );
@@ -268,7 +219,7 @@ int main( void )
             while(1){};
         }
       
-        err = xTaskCreate ( vTaskSpeech, "task speech", TASK_STK_SIZE, (void*) 0, TASK_SPEECH_PRIO, &vTaskSpeechHandle );
+        err = xTaskCreate ( vTaskSpeech, "task speech", TASK_SPEECH_STK_SIZE, (void*) 0, TASK_SPEECH_PRIO, &vTaskSpeechHandle );
         if ( err != pdPASS ){
             #if DEBUG_PRINT_MODE == 1
                 sprintf( tempStr, "Failed to Create Task Speech\n" );
@@ -277,10 +228,19 @@ int main( void )
             while(1){};
         }
 
-        err = xTaskCreate ( vTaskBatteryLevel, "task battery level", TASK_STK_SIZE, (void*) 0, TASK_BATTERY_LEVEL_PRIO, &vTaskBatteryLevelHandle );
+        err = xTaskCreate ( vTaskBatteryLevel, "task battery level", TASK_BATTERY_LEVEL_STK_SIZE, (void*) 0, TASK_BATTERY_LEVEL_PRIO, &vTaskBatteryLevelHandle );
         if ( err != pdPASS ){
             #if DEBUG_PRINT_MODE == 1
                 sprintf( tempStr, "Failed to Create Task Battery Level\n" );
+                UART_PutString( tempStr );
+            #endif
+            while(1){};
+        }
+        
+        err = xTaskCreate ( vTaskButton, "task button ", TASK_BUTTON_STK_SIZE, (void*) 0, TASK_BUTTON_PRIO, &vTaskButtonHandle );
+        if ( err != pdPASS ){
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Failed to Create Task Button\n" );
                 UART_PutString( tempStr );
             #endif
             while(1){};
@@ -296,7 +256,7 @@ int main( void )
     {
         /* failed to create semaphore or mutex */
         #if DEBUG_PRINT_MODE == 1
-            sprintf( tempStr, "failed to create semaphore or mutex" );
+            sprintf( tempStr, "failed to create semaphore or mutex or queue" );
             UART_PutString( tempStr );
         #endif
         while(1){};
@@ -387,7 +347,7 @@ static void vTaskGPS ( void *pvParameter )
         {
             firstFix = 1; // run one time
             //checkpointDestSelected = pdFAIL; /*can selct mutiple times until fix happens */
-            BaseType_t err = xTaskCreate( vTaskPathStart, "task path start", TASK_STK_SIZE, (void*) 0, TASK_PATH_START_PRIO, &vTaskPathStartHandle );
+            BaseType_t err = xTaskCreate( vTaskPathStart, "task path start", TASK_PATH_START_STK_SIZE, (void*) 0, TASK_PATH_START_PRIO, &vTaskPathStartHandle );
             if ( err != pdPASS ){
                 #if DEBUG_PRINT_MODE == 1
                     sprintf(tempStr, "Failed to Create Task Path Start\n");
@@ -395,7 +355,7 @@ static void vTaskGPS ( void *pvParameter )
                 #endif
                 while(1){};
             }
-            err = xTaskCreate( vTaskDirection, "task direction", TASK_STK_SIZE, (void*) 0, TASK_DIRECTION_PRIO, &vTaskDirectionHandle );
+            err = xTaskCreate( vTaskDirection, "task direction", TASK_DIRECTION_STK_SIZE, (void*) 0, TASK_DIRECTION_PRIO, &vTaskDirectionHandle );
             if ( err != pdPASS ){
                 #if DEBUG_PRINT_MODE == 1
                     sprintf(tempStr, "Failed to Create Task Path Start\n");
@@ -519,7 +479,7 @@ static void vTaskPathStart ( void *pvParameter )
         }
         
         BaseType_t err;
-        err = xTaskCreate( vTaskPath, "task path", TASK_STK_SIZE, (void*) 0, TASK_PATH_PRIO, &vTaskPathHandle );
+        err = xTaskCreate( vTaskPath, "task path", TASK_PATH_STK_SIZE, (void*) 0, TASK_PATH_PRIO, &vTaskPathHandle );
         if ( err != pdPASS ){
             #if DEBUG_PRINT_MODE == 1
                 sprintf( tempStr, "Failed to Create Task Path\n" );
@@ -589,8 +549,7 @@ static void vTaskPath( void *pvParameter )
                 #endif
                 
                 /* RESTART PROGRAM - works :) */
-                isr_button_press_ClearPending(); 
-                isr_button_press_StartEx( ISR_Button_Press );  // enable button press inerrupt
+                isr_button_ClearPending();
                 checkpointDestSelected = pdFALSE; // no destination selected
                 atDestination = pdFALSE; // not at destination - reset
                 firstFix = 0; // to create vTaskPathStart once again in vTaskGPS
@@ -723,6 +682,82 @@ static void vTaskBatteryLevel ( void *pvParameter )
         }
         OFF();
         vTaskDelay(xDelay10000ms);
+    }
+}
+
+/*-----------------------------------------------------------*/
+static void vTaskButton ( void *pvParameter )
+{
+    (void) pvParameter;
+    BaseType_t xStatus;
+    float buttonHoldTime;
+    
+    while(1)
+    {
+        xStatus = xQueueReceive( xButtonTimeQueue, &buttonHoldTime, portMAX_DELAY );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Hold time: %.2f\n", buttonHoldTime);
+            UART_PutString(tempStr);
+        #endif
+        if ( checkpointDestSelected == pdFALSE && buttonHoldTime > 0 && buttonHoldTime <= 3 )
+        {
+            buttonCount++;
+            switch( buttonCount % 3 ) 
+            {
+                case 0:
+                xTaskNotify(vTaskSpeechHandle, (uint32_t)(1<<0), (eNotifyAction)eSetValueWithOverwrite );
+                break;
+                case 1:
+                xTaskNotify(vTaskSpeechHandle, (uint32_t)(1<<1), (eNotifyAction)eSetValueWithOverwrite );
+                break;
+                case 2:
+                xTaskNotify(vTaskSpeechHandle, (uint32_t)(1<<1)|(1<<0), (eNotifyAction)eSetValueWithOverwrite );
+                break;
+                default: 
+                //error
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf(tempStr, "Error in button presses\n");
+                    UART_PutString(tempStr);
+                #endif
+                break;
+            }
+        }
+        else if ( checkpointDestSelected == pdFALSE && buttonHoldTime > 3 && buttonHoldTime <= 6 )
+        {
+            switch( buttonCount % 3 ) 
+            {
+                case 0:
+                checkpointDestName = 'C';
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf(tempStr, "Campus Center Destination Selected\n");
+                    UART_PutString(tempStr);
+                #endif
+                break;
+                case 1:
+                checkpointDestName = 'H';
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf(tempStr, "Campbell Hall Destination Selected\n");
+                    UART_PutString(tempStr);
+                #endif
+                break;
+                case 2:
+                checkpointDestName = 'L';
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf(tempStr, "Hargrave Library Destination Selected\n");
+                    UART_PutString(tempStr);
+                #endif
+                break;
+                default: 
+                //error
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf(tempStr, "Error in button hold\n");
+                    UART_PutString(tempStr);
+                #endif
+                break;
+            }
+            checkpointDestSelected = pdTRUE;
+        }
+        vTaskSuspend(NULL);
     }
 }
 /* [] END OF FILE */
