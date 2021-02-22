@@ -656,32 +656,41 @@ static void vTaskDirection ( void *pvParameter )
 static void vTaskBatteryLevel ( void *pvParameter )
 {
     (void) pvParameter;
+    uint32_t ulNotificationValue;
     int batteryLevelValue = 0;
-    const TickType_t xDelay10000ms = pdMS_TO_TICKS(10000UL);
-
+    
     while(1)
     {
-        batteryLevelValue = readBatteryLevel();
-        #if DEBUG_PRINT_MODE == 1
-            sprintf(tempStr, "Battery Level: %d%%\n", batteryLevelValue);
-            UART_PutString(tempStr);
-        #endif
-        SPEECH();
-
-        //Prevent the RTOS kernel swapping out the task.
-        vTaskSuspendAll();
-        //Interrupts will still operate and the tick count will be maintained.
-
-        sayBatteryPercent(batteryLevelValue);
-
-        // Restart the RTOS kernel.  We want to force a context switch,
-        //but there is no point if resuming the scheduler caused a context switch already.
-        if( !xTaskResumeAll () )
+        if ( xTaskNotifyWait((uint32_t)0, (uint32_t)0, &ulNotificationValue, portMAX_DELAY ) == pdTRUE )
         {
-            taskYIELD ();
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Battery Button Pressed" );
+                UART_PutString( tempStr );
+            #endif
         }
-        OFF();
-        vTaskDelay(xDelay10000ms);
+        if ( ulNotificationValue == 1 )
+        {
+            batteryLevelValue = readBatteryLevel();
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "     Battery Level: %d%%\n", batteryLevelValue );
+                UART_PutString(tempStr);
+            #endif
+            SPEECH();
+
+            //Prevent the RTOS kernel swapping out the task.
+            vTaskSuspendAll();
+            //Interrupts will still operate and the tick count will be maintained.
+
+            sayBatteryPercent(batteryLevelValue);
+
+            // Restart the RTOS kernel.  We want to force a context switch,
+            //but there is no point if resuming the scheduler caused a context switch already.
+            if( !xTaskResumeAll () )
+            {
+                taskYIELD ();
+            }
+            OFF();
+        }
     }
 }
 
@@ -756,6 +765,10 @@ static void vTaskButton ( void *pvParameter )
                 break;
             }
             checkpointDestSelected = pdTRUE;
+        }
+        else if ( buttonHoldTime > 6)
+        {
+            xTaskNotify(vTaskBatteryLevelHandle, (uint32_t)(1<<0), (eNotifyAction)eSetValueWithOverwrite );
         }
         vTaskSuspend(NULL);
     }
