@@ -302,6 +302,14 @@
     <Group key="Clock">
       <Data key="c0fb34bd-1044-4931-9788-16b01ce89812" value="timer_clock" />
     </Group>
+    <Group key="Interrupt">
+      <Data key="2e37b39f-91cb-4e62-a15a-143262e17e27" value="isr_button_hold" />
+      <Data key="6f2d57bd-b6d0-4115-93da-ded3485bf4ed/74b069b5-d5c5-469b-a48a-44b8a12146cd" value="I2C_1_I2C_IRQ" />
+      <Data key="70a7938a-0856-4406-a56a-ecbb5a32795e" value="isr_GPS_Received" />
+      <Data key="151cd445-6e68-4637-ae25-c42613c1024b" value="isr_Synth" />
+      <Data key="bc9bbc67-d7f8-43cb-80c9-9415958ddc6b/b73dcd38-4bce-4cd7-acec-33f53e91ccd6" value="ADC_Battery_IRQ" />
+      <Data key="fca9bf82-541e-47d9-95f2-ffdef2fecb55" value="isr_button_press" />
+    </Group>
     <Group key="Pin">
       <Data key="02f2cf2c-2c7a-49df-9246-7a3435c21be3" value="SCL_1" />
       <Data key="3fd78e59-70f1-452e-b3e6-2e63c2868210" value="Battery_pin" />
@@ -3405,6 +3413,15 @@
       </Group>
       <Group key="1024">
         <Data key="LevelKey" value="00" />
+      </Group>
+    </Group>
+  </Group>
+  <Group key="Interrupt">
+    <Group key="fca9bf82-541e-47d9-95f2-ffdef2fecb55">
+      <Group key="CortexM3">
+        <Data key="Assigned" value="True" />
+        <Data key="Priority" value="7" />
+        <Data key="Vector" value="-1" />
       </Group>
     </Group>
   </Group>
