@@ -85,12 +85,12 @@ int firstFix = 0;
 
 /*-----------------------------------------------------------*/
 /* Task Handlers */
-TaskHandle_t vTaskGPSHandle = NULL;
-TaskHandle_t vTaskPathHandle = NULL;
-TaskHandle_t vTaskSpeechHandle = NULL;
-TaskHandle_t vTaskDirectionHandle = NULL;
-TaskHandle_t vTaskBatteryLevelHandle = NULL;
-TaskHandle_t vTaskButtonHandle = NULL;
+TaskHandle_t vTaskGPSHandle             = NULL;
+TaskHandle_t vTaskPathHandle            = NULL;
+TaskHandle_t vTaskSpeechHandle          = NULL;
+TaskHandle_t vTaskDirectionHandle       = NULL;
+TaskHandle_t vTaskBatteryLevelHandle    = NULL;
+TaskHandle_t vTaskButtonHandle          = NULL;
 
 /* Semaphore Handlers */
 SemaphoreHandle_t xGPSSemaphore;
@@ -105,13 +105,13 @@ extern void RTOS_Start( void );
 
 /*-----------------------------------------------------------*/
 /* Task declarations */
-static void vTaskGPS ( void *pvParameter );
-static void vTaskPathStart (void *pvParameter);
-static void vTaskPath ( void *pvParameter );
-static void vTaskSpeech ( void *pvParameter );
-static void vTaskDirection ( void *pvParameter );
-static void vTaskBatteryLevel ( void *pvParameter );
-static void vTaskButton ( void *pvParameter );
+static void vTaskGPS            ( void *pvParameter );
+static void vTaskPathStart      ( void *pvParameter );
+static void vTaskPath           ( void *pvParameter );
+static void vTaskSpeech         ( void *pvParameter );
+static void vTaskDirection      ( void *pvParameter );
+static void vTaskBatteryLevel   ( void *pvParameter );
+static void vTaskButton         ( void *pvParameter );
 
 /*-----------------------------------------------------------*/
 /* Interrupt Service Routines */
