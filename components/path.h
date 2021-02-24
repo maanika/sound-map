@@ -21,20 +21,28 @@
 /*******************************************************************************
 *   Included Headers
 *******************************************************************************/
-#include "project.h"
-#include "FreeRTOS.h"
-    
-/* Path planning variables */
-struct Path{
-    const double checkpointLat[15];
-    const double checkpointLon[15];
-    int checkpointCurrent;              // {0,1,2,3,4,5,6,7,8,9,10,11,12,13}
-    int checkpointDest;                 // 0,3, 8
-    int checkpointOperation;            // 0 - addition, 1- substraction.
-    BaseType_t checkpointDestSelected;  // True if user has selected a valid destination
-    char checkpointDestName;
-    BaseType_t atDestination;           // True if user is within the proximity of the selected destination
-};
+    #include "project.h"
+    #include "FreeRTOS.h"
+
+    /* Path planning variables */
+    struct Path{
+        const double checkpointLat[15];
+        const double checkpointLon[15];
+        int checkpointCurrent;              // {0,1,2,3,4,5,6,7,8,9,10,11,12,13}
+        int checkpointDest;                 // 0,3, 8
+        int checkpointOperation;            // 0 - addition, 1- substraction.
+        BaseType_t checkpointDestSelected;  // True if user has selected a valid destination
+        char checkpointDestName;
+        BaseType_t atDestination;           // True if user is within the proximity of the selected destination
+    };
+
+/*******************************************************************************
+*   Function Declarations
+*******************************************************************************/
+    // Brief: Path start
+    // Param:  
+    // Return: none 
+    void pathStart ( struct Path *path, double latitudeInDec, double longitudeInDec );
 
 #endif
 /* [] END OF FILE */
