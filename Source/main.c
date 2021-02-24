@@ -11,6 +11,7 @@
 #include "lsm303d.h"
 #include "battery_level.h"
 #include "mode.h"
+#include "path.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -28,7 +29,6 @@
 
 /* Task Priority Level */
 #define TASK_GPS_PRIO           (configMAX_PRIORITIES - 2)
-#define TASK_PATH_START_PRIO    (configMAX_PRIORITIES - 3)
 #define TASK_PATH_PRIO          (configMAX_PRIORITIES - 3)
 #define TASK_DIRECTION_PRIO     (configMAX_PRIORITIES - 4)
 #define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 5)
@@ -38,7 +38,6 @@
 /* Task Stack Size */
 #define TASK_GPS_STK_SIZE           300
 #define TASK_SPEECH_STK_SIZE        300
-#define TASK_PATH_START_STK_SIZE    300
 #define TASK_PATH_STK_SIZE          300
 #define TASK_DIRECTION_STK_SIZE     100
 #define TASK_BATTERY_LEVEL_STK_SIZE 300
@@ -46,46 +45,47 @@
 
 /*-----------------------------------------------------------*/
 /* Global Varaibles */
-/* PC UART variables - for testing/debugging*/
-char tempStr[100];
 
 /* Path planning variables */
-/* Checkpoint latitudes */
-double checkpointLat[15] = {
-    -37.911547, -37.911685, -37.911286, -37.911307, -37.911286, 
-    -37.910313, -37.910275, -37.910235, -37.909966, -37.910235, 
-    -37.910215, -37.910688, -37.910862, -37.911202, -37.911295
+struct Path path = {
+    /* Checkpoint latitudes */      /* Checkpoint longitudes */
+    .checkpointLat[0] = -37.911547, .checkpointLon[0] = 145.13335,
+    .checkpointLat[1] = -37.911685, .checkpointLon[1] = 145.13398,
+    .checkpointLat[2] = -37.911286, .checkpointLon[2] = 145.13415,
+    .checkpointLat[3] = -37.911307, .checkpointLon[3] = 145.13442,
+    .checkpointLat[4] = -37.911286, .checkpointLon[4] = 145.13415,
+    .checkpointLat[5] = -37.910313, .checkpointLon[5] = 145.13432,
+    .checkpointLat[6] = -37.910275, .checkpointLon[6] = 145.13333,
+    .checkpointLat[7] = -37.910235, .checkpointLon[7] = 145.13211,
+    .checkpointLat[8] = -37.909966, .checkpointLon[8] = 145.13219,
+    .checkpointLat[9] = -37.910235, .checkpointLon[9] = 145.13211,
+    .checkpointLat[10] = -37.910215, .checkpointLon[10] = 145.13167,
+    .checkpointLat[11] = -37.910688, .checkpointLon[11] = 145.13158,
+    .checkpointLat[12] = -37.910862, .checkpointLon[12] = 145.13277,
+    .checkpointLat[13] = -37.911202, .checkpointLon[13] = 145.13298,
+    .checkpointLat[14] = -37.911295, .checkpointLon[14] = 145.13339,
+    .checkpointOperation = 0,   /* addition by default */
+    .checkpointDestSelected = pdFALSE,
+    .checkpointDestName = ' ',
+    .atDestination = pdFALSE,
 };
-
-/* Checkpoint longitudes */
-double checkpointLon[15] = {
-    145.13335, 145.13398, 145.13415, 145.13442, 145.13415, 
-    145.13432, 145.13333, 145.13211, 145.13219, 145.13211, 
-    145.13167, 145.13158, 145.13277, 145.13298, 145.13339 
-};
-
-/* Checkpoint names - for debugging/testing */
-int checkpointName[15] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 };
-//{"H0","H1","H2","H3","H4","H5","H6","H7","H8","H9","H10","H11","H12","H13"};
-
-int checkpointOperation = 0; // 0 - addition, 1- substraction.
-int checkpointCurrent = 0; // {0,1,2,3,4,5,6,7,8,9,10,11,12,13}
-int checkpointDest = 0; // 0,3, 8
-char checkpointDestName; // for debugging/testing
-BaseType_t checkpointDestSelected = pdFALSE; // True if user has selected a valid destination
-BaseType_t atDestination = pdFALSE; // True if user is within the proximity of the selected destination
 
 /* GPS variables */
 long double latitudeInDec, longitudeInDec;
 int firstFix = 0;
 
-/* Button variables */
-int buttonCount = -1; // button count mod 3 = ans, if 0-Campus centre, 1-Campbell Hall, 2- Hargrave
+/* Variables for debugging/testing */
+#if DEBUG_PRINT_MODE == 1
+    /* Checkpoint name printing */
+    int checkpointName[15] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
+    
+    /* PC UART printing */
+    char tempStr[100]; 
+#endif
 
 /*-----------------------------------------------------------*/
 /* Task Handlers */
 TaskHandle_t vTaskGPSHandle = NULL;
-TaskHandle_t vTaskPathStartHandle = NULL;
 TaskHandle_t vTaskPathHandle = NULL;
 TaskHandle_t vTaskSpeechHandle = NULL;
 TaskHandle_t vTaskDirectionHandle = NULL;
@@ -176,7 +176,6 @@ void PSOC_Start( void )
 
     /* Turn on System Output */
     ON();
-    
 }
 
 /*-----------------------------------------------------------*/
@@ -245,6 +244,7 @@ int main( void )
             #endif
             while(1){};
         }
+        
         #if DEBUG_PRINT_MODE == 1
             sprintf( tempStr, "Main: Start\n\n" );
             UART_PutString( tempStr );
@@ -323,10 +323,12 @@ static void vTaskGPS ( void *pvParameter )
         
         longitudeInDec = min2dec( longitude );
         latitudeInDec = min2dec( latitude ) * -1;
+        
         #if DEBUG_PRINT_MODE == 1
             sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
             UART_PutString( tempStr );
         #endif
+        
         if ( longitudeInDec == 0 && latitudeInDec == 0 )
         {
             SPEECH();
@@ -343,14 +345,17 @@ static void vTaskGPS ( void *pvParameter )
             OFF();
         }
         
-        if ( firstFix == 0 && longitudeInDec != 0 && latitudeInDec != 0 && checkpointDestSelected == pdTRUE )
+        if ( firstFix == 0 && longitudeInDec != 0 && latitudeInDec != 0 && path.checkpointDestSelected == pdTRUE )
         {
             firstFix = 1; // run one time
-            //checkpointDestSelected = pdFAIL; /*can selct mutiple times until fix happens */
-            BaseType_t err = xTaskCreate( vTaskPathStart, "task path start", TASK_PATH_START_STK_SIZE, (void*) 0, TASK_PATH_START_PRIO, &vTaskPathStartHandle );
+            
+            /* Set Path Details */
+            pathStart ( &path, latitudeInDec, longitudeInDec );
+            
+            BaseType_t err = xTaskCreate( vTaskPath, "task path", TASK_PATH_STK_SIZE, (void*) 0, TASK_PATH_PRIO, &vTaskPathHandle );
             if ( err != pdPASS ){
                 #if DEBUG_PRINT_MODE == 1
-                    sprintf(tempStr, "Failed to Create Task Path Start\n");
+                    sprintf( tempStr, "Failed to Create Task Path\n" );
                     UART_PutString( tempStr );
                 #endif
                 while(1){};
@@ -369,129 +374,6 @@ static void vTaskGPS ( void *pvParameter )
 }
 
 /*-----------------------------------------------------------*/
-static void vTaskPathStart ( void *pvParameter )
-{
-    (void) pvParameter;
-    double diffDistanceToStart[4];/* Starting points H0,H3,H8 */
-    int startArrayLocation;
-    
-    while (1)
-    {
-        /* Distance from current location to each starting point */
-        diffDistanceToStart[0] = distance( latitudeInDec, longitudeInDec, checkpointLat[0],checkpointLon[0] );
-        diffDistanceToStart[1] = distance( latitudeInDec, longitudeInDec, checkpointLat[3],checkpointLon[3] );
-        diffDistanceToStart[2] = distance( latitudeInDec, longitudeInDec, checkpointLat[8],checkpointLon[8] );
-        
-        if( (diffDistanceToStart[0] < diffDistanceToStart[1]) && (diffDistanceToStart[0] < diffDistanceToStart[2]) )
-        {
-           startArrayLocation = 0;
-        }
-        else if( diffDistanceToStart[1] < diffDistanceToStart[2] )
-        {
-           startArrayLocation = 1;
-        }
-        else
-        {
-           startArrayLocation = 2;
-        }
-
-        /* Determine starting location, chechpoint opertion and destination (for now)*/
-        switch ( startArrayLocation )
-        {
-            case 0: /* H0 is the starting point*/
-                checkpointCurrent = 0;
-                switch ( checkpointDestName )
-                {
-                    case 'C':
-                        checkpointDest = 0;
-                        atDestination = pdTRUE; /* at destnation */
-                        break;
-                    case 'H':
-                        checkpointDest = 3;
-                        checkpointOperation = 0; /* addition */
-                        break;
-                    case 'L':
-                        checkpointDest = 8;
-                        checkpointOperation = 1; /* substraction */
-                        break;
-                    default:
-                        /* error */
-                        break;
-                }
-                #if DEBUG_PRINT_MODE == 1
-                    sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
-                    UART_PutString( tempStr );
-                #endif
-                break;
-            case 1: /* H3 is the starting point */
-                checkpointCurrent = 3;
-                switch ( checkpointDestName )
-                {
-                    case 'C':
-                        checkpointDest = 0;
-                        checkpointOperation = 1; /* substraction */
-                        break;
-                    case 'H':
-                        checkpointDest = 3;
-                        atDestination = pdTRUE; /* at destnation */
-                        break;
-                    case 'L':
-                        checkpointDest = 8;
-                        checkpointOperation = 0; /* addition */
-                        break;
-                    default:
-                        /* error */
-                        break;
-                }
-                #if DEBUG_PRINT_MODE == 1
-                    sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
-                    UART_PutString( tempStr );
-                #endif
-                break;
-            case 2: /* H8 is the starting point */
-                checkpointCurrent = 8;
-                switch ( checkpointDestName )
-                {
-                    case 'C':
-                        checkpointDest = 0;
-                        checkpointOperation = 0; /* addition */
-                        break;
-                    case 'H':
-                        checkpointDest = 3;
-                        checkpointOperation = 1; /* substraction */
-                        break;
-                    case 'L':
-                        checkpointDest = 8;
-                        atDestination = pdTRUE; /* at destnation */
-                        break;
-                    default:
-                        /* error */
-                        break;
-                }
-                #if DEBUG_PRINT_MODE == 1
-                    sprintf( tempStr, "Starting Point: H%d \nDestination is: H%d\n", checkpointName[checkpointCurrent], checkpointName[checkpointDest] );
-                    UART_PutString( tempStr );
-                #endif
-                break;
-            default:
-                /* error */
-                break;
-        }
-        
-        BaseType_t err;
-        err = xTaskCreate( vTaskPath, "task path", TASK_PATH_STK_SIZE, (void*) 0, TASK_PATH_PRIO, &vTaskPathHandle );
-        if ( err != pdPASS ){
-            #if DEBUG_PRINT_MODE == 1
-                sprintf( tempStr, "Failed to Create Task Path\n" );
-                UART_PutString( tempStr );
-            #endif
-            while(1){};
-        }
-        vTaskDelete( NULL );
-    }
-}
-
-/*-----------------------------------------------------------*/
 static void vTaskPath( void *pvParameter )
 {
     (void) pvParameter;
@@ -501,34 +383,36 @@ static void vTaskPath( void *pvParameter )
     //SOUND(); // sound always on as long as task path is running - ***place this in sound task when written***
     while (1)
     {
-        if ( checkpointOperation == 0 )
+        if ( path.checkpointOperation == 0 )
         {
-            nextCheckpoint = checkpointCurrent+1;
+            nextCheckpoint = path.checkpointCurrent+1;
             if ( nextCheckpoint == 15 ) { nextCheckpoint = 0; }
-            diffDistance = distance( latitudeInDec, longitudeInDec, checkpointLat[nextCheckpoint],checkpointLon[nextCheckpoint] );
+            diffDistance = distance( latitudeInDec, longitudeInDec, 
+                path.checkpointLat[nextCheckpoint], path.checkpointLon[nextCheckpoint] );
         }
-        if ( checkpointOperation == 1 )
+        if ( path.checkpointOperation == 1 )
         {
-            nextCheckpoint = checkpointCurrent-1;
+            nextCheckpoint = path.checkpointCurrent-1;
             if ( nextCheckpoint == -1 ) { nextCheckpoint = 14; }
-            diffDistance = distance(latitudeInDec, longitudeInDec, checkpointLat[nextCheckpoint],checkpointLon[nextCheckpoint] );
+            diffDistance = distance(latitudeInDec, longitudeInDec, 
+                path.checkpointLat[nextCheckpoint], path.checkpointLon[nextCheckpoint] );
         }
         
-        if ( diffDistance < 15 || atDestination == pdTRUE )
+        if ( diffDistance < 15 || path.atDestination == pdTRUE )
         {
-            if ( checkpointOperation == 0 && atDestination == pdFALSE )
+            if ( path.checkpointOperation == 0 && path.atDestination == pdFALSE )
             { 
-                checkpointCurrent = checkpointCurrent + 1;
-                if ( checkpointCurrent == 15 ) { checkpointCurrent = 0; }
+                path.checkpointCurrent = path.checkpointCurrent + 1;
+                if ( path.checkpointCurrent == 15 ) { path.checkpointCurrent = 0; }
                 
             }
-            if ( checkpointOperation == 1 && atDestination == pdFALSE ) 
+            if ( path.checkpointOperation == 1 && path.atDestination == pdFALSE ) 
             {
-                checkpointCurrent = checkpointCurrent - 1;
-                if ( checkpointCurrent == -1 ) { checkpointCurrent = 14; }
+                path.checkpointCurrent = path.checkpointCurrent - 1;
+                if ( path.checkpointCurrent == -1 ) { path.checkpointCurrent = 14; }
             }
             else { /* error in checkPointOperation value*/}
-            if ( checkpointCurrent == checkpointDest )/* if atDestination is pdTRUE, this condition must be satisfied */
+            if ( path.checkpointCurrent == path.checkpointDest )/* if atDestination is pdTRUE, this condition must be satisfied */
             {
                 SPEECH();
                 /* Prevent the RTOS kernel swapping out the task.*/
@@ -550,16 +434,16 @@ static void vTaskPath( void *pvParameter )
                 
                 /* RESTART PROGRAM - works :) */
                 isr_button_ClearPending();
-                checkpointDestSelected = pdFALSE; // no destination selected
-                atDestination = pdFALSE; // not at destination - reset
+                path.checkpointDestSelected = pdFALSE; // no destination selected
+                path.atDestination = pdFALSE; // not at destination - reset
                 firstFix = 0; // to create vTaskPathStart once again in vTaskGPS
-                buttonCount = -1; // reset button count
                 vTaskDelete(vTaskDirectionHandle);
                 vTaskDelete(NULL); // delete current task - and all others
             }
         }
         #if DEBUG_PRINT_MODE == 1
-            sprintf( tempStr, "Current Checkpoint: H%d \nNext Checkpoint:    H%d \n", checkpointName[checkpointCurrent], checkpointName[nextCheckpoint] );
+            sprintf( tempStr, "Current Checkpoint: H%d \nNext Checkpoint:    H%d \n", 
+                checkpointName[path.checkpointCurrent], checkpointName[nextCheckpoint] );
             UART_PutString( tempStr );
             sprintf( tempStr, "Distance to next checkpoint: %.2f \n", diffDistance );
             UART_PutString( tempStr);
@@ -700,6 +584,7 @@ static void vTaskButton ( void *pvParameter )
     (void) pvParameter;
     BaseType_t xStatus;
     float buttonHoldTime;
+    int buttonCount = -1; // button count mod 3 = ans, if 0-Campus centre, 1-Campbell Hall, 2- Hargrave
     
     while(1)
     {
@@ -708,7 +593,7 @@ static void vTaskButton ( void *pvParameter )
             sprintf(tempStr, "Hold time: %.2f\n", buttonHoldTime);
             UART_PutString(tempStr);
         #endif
-        if ( checkpointDestSelected == pdFALSE && buttonHoldTime > 0 && buttonHoldTime <= 3 )
+        if ( path.checkpointDestSelected == pdFALSE && buttonHoldTime > 0 && buttonHoldTime <= 3 )
         {
             buttonCount++;
             switch( buttonCount % 3 ) 
@@ -731,26 +616,26 @@ static void vTaskButton ( void *pvParameter )
                 break;
             }
         }
-        else if ( checkpointDestSelected == pdFALSE && buttonHoldTime > 3 && buttonHoldTime <= 6 )
+        else if ( path.checkpointDestSelected == pdFALSE && buttonHoldTime > 3 && buttonHoldTime <= 6 )
         {
             switch( buttonCount % 3 ) 
             {
                 case 0:
-                checkpointDestName = 'C';
+                path.checkpointDestName = 'C';
                 #if DEBUG_PRINT_MODE == 1
                     sprintf(tempStr, "Campus Center Destination Selected\n");
                     UART_PutString(tempStr);
                 #endif
                 break;
                 case 1:
-                checkpointDestName = 'H';
+                path.checkpointDestName = 'H';
                 #if DEBUG_PRINT_MODE == 1
                     sprintf(tempStr, "Campbell Hall Destination Selected\n");
                     UART_PutString(tempStr);
                 #endif
                 break;
                 case 2:
-                checkpointDestName = 'L';
+                path.checkpointDestName = 'L';
                 #if DEBUG_PRINT_MODE == 1
                     sprintf(tempStr, "Hargrave Library Destination Selected\n");
                     UART_PutString(tempStr);
@@ -764,7 +649,7 @@ static void vTaskButton ( void *pvParameter )
                 #endif
                 break;
             }
-            checkpointDestSelected = pdTRUE;
+            path.checkpointDestSelected = pdTRUE;
         }
         else if ( buttonHoldTime > 6)
         {
