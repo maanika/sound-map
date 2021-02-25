@@ -45,7 +45,6 @@
 
 /*-----------------------------------------------------------*/
 /* Global Varaibles */
-
 /* Path planning variables */
 struct Path path = {
     /* Checkpoint latitudes */      /* Checkpoint longitudes */
@@ -74,6 +73,9 @@ struct Path path = {
 long double latitudeInDec, longitudeInDec;
 int firstFix = 0;
 
+/* Battery Level variables */
+int batteryLevelValue = 0;
+
 /* Variables for debugging/testing */
 #if DEBUG_PRINT_MODE == 1
     /* Checkpoint name printing */
@@ -85,12 +87,12 @@ int firstFix = 0;
 
 /*-----------------------------------------------------------*/
 /* Task Handlers */
-TaskHandle_t vTaskGPSHandle             = NULL;
-TaskHandle_t vTaskPathHandle            = NULL;
-TaskHandle_t vTaskSpeechHandle          = NULL;
-TaskHandle_t vTaskDirectionHandle       = NULL;
-TaskHandle_t vTaskBatteryLevelHandle    = NULL;
-TaskHandle_t vTaskButtonHandle          = NULL;
+TaskHandle_t vTaskGPSHandle           = NULL;
+TaskHandle_t vTaskPathHandle          = NULL;
+TaskHandle_t vTaskSpeechHandle        = NULL;
+TaskHandle_t vTaskDirectionHandle     = NULL;
+TaskHandle_t vTaskBatteryLevelHandle  = NULL;
+TaskHandle_t vTaskButtonHandle        = NULL;
 
 /* Semaphore Handlers */
 SemaphoreHandle_t xGPSSemaphore;
@@ -143,8 +145,8 @@ CY_ISR( ISR_Button )
     Control_Reg_1_Write(0);
     
     /* Send  button hold time */
-    xQueueSendToFrontFromISR(xButtonTimeQueue, (void*)&buttonHoldTime, portMAX_DELAY );
-
+    xQueueSendToFrontFromISR(xButtonTimeQueue, (void*)&buttonHoldTime, (TickType_t)portMAX_DELAY );
+    
     xTaskResumeFromISR(vTaskButtonHandle);
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );  
 }
@@ -152,7 +154,7 @@ CY_ISR( ISR_Button )
 /*-----------------------------------------------------------*/
 void PSOC_Start( void )
 {
-    /* Start GPS and PC uart - for debugging/testing */
+    /* Start UART for GPS and debug printing */
     UART_Start();
     
     /* Start Button */
@@ -161,7 +163,7 @@ void PSOC_Start( void )
     /* Start and Initialize Sound */
     startSoundComponents();
     dmaConfiguration();
-    int freq = 100;       // put as define constant for system frequency once tested
+    int freq = 100;       // put as a constant for system frequency once tested
     sineWaveInitialize( freq );
     
     /* Start and Initialize Speech */
@@ -331,18 +333,7 @@ static void vTaskGPS ( void *pvParameter )
         
         if ( longitudeInDec == 0 && latitudeInDec == 0 )
         {
-            SPEECH();
-            /* Prevent the RTOS kernel swapping out the task.*/
-            vTaskSuspendAll();
-            /* Interrupts will still operate and the tick count will be maintained. */
-            sayFix();
-            /* Restart the RTOS kernel.  We want to force a context switch, 
-            but there is no point if resuming the scheduler caused a context switch already. */
-            if( !xTaskResumeAll () )
-            {
-                taskYIELD ();
-            }
-            OFF();
+            xTaskNotify(vTaskSpeechHandle, (uint32_t)(1<<2)|(1<<0), (eNotifyAction)eSetValueWithOverwrite );
         }
         
         if ( firstFix == 0 && longitudeInDec != 0 && latitudeInDec != 0 && path.checkpointDestSelected == pdTRUE )
@@ -414,25 +405,10 @@ static void vTaskPath( void *pvParameter )
             else { /* error in checkPointOperation value*/}
             if ( path.checkpointCurrent == path.checkpointDest )/* if atDestination is pdTRUE, this condition must be satisfied */
             {
-                SPEECH();
-                /* Prevent the RTOS kernel swapping out the task.*/
-                vTaskSuspendAll();
-                /* Interrupts will still operate and the tick count will be maintained. */
-                sayArrived();
-                /* Restart the RTOS kernel.  We want to force a context switch, 
-                but there is no point if resuming the scheduler caused a context switch already. */
-                if( !xTaskResumeAll () )
-                {
-                    taskYIELD ();
-                }
-                OFF();
-                // arrived at destination
-                #if DEBUG_PRINT_MODE == 1
-                    sprintf( tempStr, "Arrived at destination \n" );
-                    UART_PutString( tempStr );
-                #endif
-                
-                /* RESTART PROGRAM - works :) */
+                /* Vocalize arrived at destination */
+                xTaskNotify(vTaskSpeechHandle, (uint32_t)(1<<2)|(1<<1), (eNotifyAction)eSetValueWithOverwrite );
+
+                /* RESTART PROGRAM */
                 isr_button_ClearPending();
                 path.checkpointDestSelected = pdFALSE; // no destination selected
                 path.atDestination = pdFALSE; // not at destination - reset
@@ -456,13 +432,13 @@ static void vTaskPath( void *pvParameter )
 static void vTaskSpeech ( void *pvParameter )
 {
     (void) pvParameter;
-    uint32_t ulNotificationValue;
+    uint32_t speechNotificationValue;
     while (1)
     {
-        if ( xTaskNotifyWait((uint32_t)0, (uint32_t)0, &ulNotificationValue, portMAX_DELAY ) == pdTRUE )
+        if ( xTaskNotifyWait((uint32_t)0, (uint32_t)0, &speechNotificationValue, portMAX_DELAY ) == pdTRUE )
         {
             #if DEBUG_PRINT_MODE == 1
-                sprintf( tempStr, "Notification received: %d", ulNotificationValue );
+                sprintf( tempStr, "Notification received: %d", speechNotificationValue );
                 UART_PutString( tempStr );
             #endif
         }
@@ -472,35 +448,56 @@ static void vTaskSpeech ( void *pvParameter )
         //Prevent the RTOS kernel swapping out the task.
         vTaskSuspendAll();
         //Interrupts will still operate and the tick count will be maintained.
-        switch (ulNotificationValue)
+        switch (speechNotificationValue)
         {
             case 1:
-            #if DEBUG_PRINT_MODE == 1
-                sprintf( tempStr, "     Campus centre\n" );
-                UART_PutString( tempStr );
-            #endif
-            sayCampusCentre();
-            break;
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "     Campus centre\n" );
+                    UART_PutString( tempStr );
+                #endif
+                sayCampusCentre();
+                break;
             case 2:
-            #if DEBUG_PRINT_MODE == 1
-                sprintf( tempStr, "     Campbell Hall\n" );
-                UART_PutString( tempStr );
-            #endif
-            sayCampbellHall();
-            break;
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "     Campbell Hall\n" );
+                    UART_PutString( tempStr );
+                #endif
+                sayCampbellHall();
+                break;
             case 3:
-            #if DEBUG_PRINT_MODE == 1
-                sprintf( tempStr, "     Hargrave Library\n" );
-                UART_PutString( tempStr );
-            #endif
-            sayHargraveLibrary();
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "     Hargrave Library\n" );
+                    UART_PutString( tempStr );
+                #endif
+                sayHargraveLibrary();
+                break;
+            case 4:
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "     Battery Level: %d%%\n", batteryLevelValue );
+                    UART_PutString(tempStr);
+                #endif
+                sayBatteryPercent(batteryLevelValue);
+                break;
+            case 5:
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "     No GPS Fix\n" );
+                    UART_PutString( tempStr );
+                #endif
+                sayFix();
+                break;
+            case 6:
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "     Arrived at destination \n" );
+                    UART_PutString( tempStr );
+                #endif
+                sayArrived();
             break;
             default:
-            #if DEBUG_PRINT_MODE == 1
-                sprintf( tempStr, "Error in notification value received \n" );
-                UART_PutString( tempStr );
-            #endif
-            break;
+                #if DEBUG_PRINT_MODE == 1
+                    sprintf( tempStr, "Error in notification value received \n" );
+                    UART_PutString( tempStr );
+                #endif
+                break;
         }
         // Restart the RTOS kernel.  We want to force a context switch, 
         //but there is no point if resuming the scheduler caused a context switch already.
@@ -510,7 +507,6 @@ static void vTaskSpeech ( void *pvParameter )
         }
         OFF();
     }
-
 }
 
 /*-----------------------------------------------------------*/
@@ -540,40 +536,21 @@ static void vTaskDirection ( void *pvParameter )
 static void vTaskBatteryLevel ( void *pvParameter )
 {
     (void) pvParameter;
-    uint32_t ulNotificationValue;
-    int batteryLevelValue = 0;
+    uint32_t batteryNotificationValue;
     
     while(1)
     {
-        if ( xTaskNotifyWait((uint32_t)0, (uint32_t)0, &ulNotificationValue, portMAX_DELAY ) == pdTRUE )
+        if ( xTaskNotifyWait((uint32_t)0, (uint32_t)0, &batteryNotificationValue, portMAX_DELAY ) == pdTRUE )
         {
             #if DEBUG_PRINT_MODE == 1
                 sprintf( tempStr, "Battery Button Pressed" );
                 UART_PutString( tempStr );
             #endif
         }
-        if ( ulNotificationValue == 1 )
+        if ( batteryNotificationValue == 1 )
         {
             batteryLevelValue = readBatteryLevel();
-            #if DEBUG_PRINT_MODE == 1
-                sprintf( tempStr, "     Battery Level: %d%%\n", batteryLevelValue );
-                UART_PutString(tempStr);
-            #endif
-            SPEECH();
-
-            //Prevent the RTOS kernel swapping out the task.
-            vTaskSuspendAll();
-            //Interrupts will still operate and the tick count will be maintained.
-
-            sayBatteryPercent(batteryLevelValue);
-
-            // Restart the RTOS kernel.  We want to force a context switch,
-            //but there is no point if resuming the scheduler caused a context switch already.
-            if( !xTaskResumeAll () )
-            {
-                taskYIELD ();
-            }
-            OFF();
+            xTaskNotify(vTaskSpeechHandle, (uint32_t)(1<<2), (eNotifyAction)eSetValueWithOverwrite );
         }
     }
 }
@@ -644,7 +621,7 @@ static void vTaskButton ( void *pvParameter )
                 default: 
                 //error
                 #if DEBUG_PRINT_MODE == 1
-                    sprintf(tempStr, "Error in button hold\n");
+                    sprintf(tempStr, "Error in button hold (buttonCount = -1)\n");
                     UART_PutString(tempStr);
                 #endif
                 break;
