@@ -12,6 +12,8 @@
 #include "battery_level.h"
 #include "mode.h"
 #include "path.h"
+#include "distance.h"
+#include "motor.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
