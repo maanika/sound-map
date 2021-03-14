@@ -12,8 +12,10 @@
 #include "battery_level.h"
 #include "mode.h"
 #include "path.h"
-#include "distance.h"
-#include "motor.h"
+#if OBJ_DETECT_MODE == 1
+    #include "distance.h"
+    #include "motor.h"
+#endif
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -36,6 +38,10 @@
 #define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 5)
 #define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 6)
 #define TASK_BUTTON_PRIO        (configMAX_PRIORITIES - 1)
+#if OBJ_DETECT_MODE == 1
+    #define TASK_MOTOR_PRIO     (configMAX_PRIORITIES - 1)
+    #define TASK_DIS_PRIO       (configMAX_PRIORITIES - 2)
+#endif
 
 /* Task Stack Size */
 #define TASK_GPS_STK_SIZE           300
@@ -44,6 +50,10 @@
 #define TASK_DIRECTION_STK_SIZE     100
 #define TASK_BATTERY_LEVEL_STK_SIZE 300
 #define TASK_BUTTON_STK_SIZE        300
+#if OBJ_DETECT_MODE == 1
+    #define TASK_MOTOR_STK_SIZE     200
+    #define TASK_DIS_STK_SIZE       200
+#endif
 
 /*-----------------------------------------------------------*/
 /* Global Varaibles */
@@ -87,6 +97,11 @@ int batteryLevelValue = 0;
     char tempStr[100]; 
 #endif
 
+/* Variables for object detection */
+#if OBJ_DETECT_MODE == 1
+    ultrasonicSensor ultrasonicReadings;
+#endif
+
 /*-----------------------------------------------------------*/
 /* Task Handlers */
 TaskHandle_t vTaskGPSHandle           = NULL;
@@ -95,6 +110,10 @@ TaskHandle_t vTaskSpeechHandle        = NULL;
 TaskHandle_t vTaskDirectionHandle     = NULL;
 TaskHandle_t vTaskBatteryLevelHandle  = NULL;
 TaskHandle_t vTaskButtonHandle        = NULL;
+#if OBJ_DETECT_MODE == 1
+    TaskHandle_t xTaskMotorHandle     = NULL;
+    TaskHandle_t xTaskDistanceHandle  = NULL;
+#endif
 
 /* Semaphore Handlers */
 SemaphoreHandle_t xGPSSemaphore;
@@ -116,7 +135,10 @@ static void vTaskSpeech         ( void *pvParameter );
 static void vTaskDirection      ( void *pvParameter );
 static void vTaskBatteryLevel   ( void *pvParameter );
 static void vTaskButton         ( void *pvParameter );
-
+#if OBJ_DETECT_MODE == 1
+static void vTaskDistance       ( void *pvParameter );
+static void vTaskMotor          ( void *pvParameter );
+#endif
 /*-----------------------------------------------------------*/
 /* Interrupt Service Routines */
 CY_ISR( ISR_GPS_Received )
