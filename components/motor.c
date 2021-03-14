@@ -24,6 +24,7 @@
 #include <project.h>
 #include "stdio.h"
 #include "motor.h"
+#include "mode.h"
 
 /*******************************************************************************
 *   Constant definitions
@@ -59,8 +60,10 @@ void setMotors(int distance1, int distance2, int distance3)
     if ( distance1 <= MAX_DISTANCE )
     {
         PWM_1_WriteCompare1( PWM_PERIOD - distance1 );
-        sprintf( tempString, "num1: %d       Pulse width1: %d\n", distance1, PWM_PERIOD - distance1 );
-        UART_1_PutString( tempString );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf( tempString, "num1: %d       Pulse width1: %d\n", distance1, PWM_PERIOD - distance1 );
+            UART_PutString( tempString );
+        #endif
     }
     else
     {
@@ -69,8 +72,10 @@ void setMotors(int distance1, int distance2, int distance3)
     if ( distance2 <= MAX_DISTANCE )
     {
         PWM_1_WriteCompare2( PWM_PERIOD - distance2 );
-        sprintf( tempString, "num2: %d       Pulse width2: %d\n", distance2, PWM_PERIOD - distance2 );
-        UART_1_PutString( tempString );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf( tempString, "num2: %d       Pulse width2: %d\n", distance2, PWM_PERIOD - distance2 );
+            UART_PutString( tempString );
+        #endif
     }
     else
     {
@@ -79,8 +84,10 @@ void setMotors(int distance1, int distance2, int distance3)
     if ( distance3 <= MAX_DISTANCE )
     {
         PWM_2_WriteCompare( PWM_PERIOD - distance3 );
-        sprintf( tempString, "num3: %d       Pulse width3: %d\n", distance3, PWM_PERIOD - distance3 );
-        UART_1_PutString( tempString );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf( tempString, "num3: %d       Pulse width3: %d\n", distance3, PWM_PERIOD - distance3 );
+            UART_PutString( tempString );
+        #endif
     }
     else
     {

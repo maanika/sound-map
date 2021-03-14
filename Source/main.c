@@ -39,8 +39,8 @@
 #define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 6)
 #define TASK_BUTTON_PRIO        (configMAX_PRIORITIES - 1)
 #if OBJ_DETECT_MODE == 1
-    #define TASK_MOTOR_PRIO     (configMAX_PRIORITIES - 1)
-    #define TASK_DIS_PRIO       (configMAX_PRIORITIES - 2)
+    #define TASK_MOTOR_PRIO     (configMAX_PRIORITIES - 7)
+    #define TASK_DIS_PRIO       (configMAX_PRIORITIES - 8)
 #endif
 
 /* Task Stack Size */
@@ -677,4 +677,50 @@ static void vTaskButton ( void *pvParameter )
         vTaskSuspend(NULL);
     }
 }
+
+
+/*-----------------------------------------------------------*/
+#if OBJ_DETECT_MODE == 1
+void vTaskDistance(void *pvParameter)
+{
+    (void) pvParameter;
+    
+    /* start components required for ultrasonic sensors. */
+    startUltrasonicSensors();
+    
+    const TickType_t xDelay1000ms = pdMS_TO_TICKS(1000UL);
+
+    while(1)
+    {
+        distanceReading( &ultrasonicReadings );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Distance 1 : %lf cm         Distance 2 : %lf cm           Distance 3 : %lf cm\n",
+                ultrasonicReadings.distance1, ultrasonicReadings.distance2, ultrasonicReadings.distance3);
+            UART_PutString(tempStr);
+        #endif
+        /* Task should execute every 2000 milliseconds exactly. */
+        vTaskDelay( xDelay1000ms );
+    }
+}
+
+/*-----------------------------------------------------------*/
+void vTaskMotor(void *pvParameter)
+{
+    (void) pvParameter;
+    
+    /* start components required for motors. */
+    startMotors();
+    
+    const TickType_t xDelay2093ms = pdMS_TO_TICKS(2093UL);
+    
+    while(1)
+    {
+        setMotors( (int)ultrasonicReadings.distance1, (int)ultrasonicReadings.distance2, (int)ultrasonicReadings.distance3);
+       
+        /* Task should execute every 2000 milliseconds exactly. */
+        vTaskDelay( xDelay2093ms );
+    }
+}
+#endif
+/*-----------------------------------------------------------*/
 /* [] END OF FILE */
