@@ -271,6 +271,24 @@ int main( void )
             while(1){};
         }
         
+        #if OBJ_DETECT_MODE == 1
+            err = xTaskCreate(vTaskDistance, "task distance", TASK_DIS_STK_SIZE, (void*) 0, TASK_DIS_PRIO, &xTaskDistanceHandle);
+            if (err != pdPASS){
+                sprintf(tempStr, "Failed to Create Task Distance\n");
+                UART_WriteTxData(0x0d);
+                UART_PutString(tempStr);
+                while(1){};
+            }
+            
+            err = xTaskCreate(vTaskMotor, "task motor", TASK_MOTOR_STK_SIZE, (void*) 0, TASK_MOTOR_PRIO, &xTaskMotorHandle);
+            if (err != pdPASS){
+                sprintf(tempStr, "Failed to Create Task Motor\n");
+                UART_WriteTxData(0x0d);
+                UART_PutString(tempStr);
+                while(1){};
+            }
+        #endif
+        
         #if DEBUG_PRINT_MODE == 1
             sprintf( tempStr, "Main: Start\n\n" );
             UART_PutString( tempStr );
