@@ -35,8 +35,8 @@
 *******************************************************************************/
 #define MAXBOTIX_V_RANGE 5
 
-/* Sensor Resolution = Vcc / 1024, where Vcc is 4.93 here. */
-#define MAXBOTIX_RESOLUTION 4.84375e-3
+/* Sensor Resolution = Vcc / 1024, where Vcc is 4.99 here. */
+#define MAXBOTIX_RESOLUTION 4.87305e-3
 
 /*******************************************************************************
 * Function Name: distanceReading

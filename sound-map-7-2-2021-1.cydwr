@@ -605,7 +605,7 @@
       <Data key="bca44bbf-66ad-4a88-ac3c-3da4a30bd7ad/dea208d9-07b0-438b-a5e0-ac5d207f2658/16a808f6-2e13-45b9-bce0-b001c8655113" value="ADC_SAR_Seq_1_SAR_Bypass" />
       <Data key="beca5e2d-f70f-4900-a4db-7eca1ed3126e/8b77a6c4-10a0-4390-971c-672353e2a49c" value="USBUART_Dm" />
       <Data key="beca5e2d-f70f-4900-a4db-7eca1ed3126e/618a72fc-5ddd-4df5-958f-a3d55102db42" value="USBUART_Dp" />
-      <Data key="c5c021fb-e525-451f-978d-8589dd36d2a5" value="Pin_3_5" />
+      <Data key="c5c021fb-e525-451f-978d-8589dd36d2a5" value="Pin_3_3" />
       <Data key="cc3bcd7e-5dc0-48ea-9bf6-6aa082be1ada" value="Pin_Vout1" />
       <Data key="e851a3b9-efb8-48be-bbb8-b303b216c393" value="Ultrasonic_Rx" />
       <Data key="ed092b9b-d398-4703-be89-cebf998501f6" value="Tx_1" />
@@ -3716,7 +3716,7 @@
     </Group>
     <Group key="3fd78e59-70f1-452e-b3e6-2e63c2868210">
       <Group key="0">
-        <Data key="Port Format" value="1,6" />
+        <Data key="Port Format" value="3,0" />
       </Group>
     </Group>
     <Group key="8d318d8b-cf7b-4b6b-b02c-ab1c5c49d0ba">
@@ -3806,7 +3806,7 @@
     </Group>
     <Group key="c5c021fb-e525-451f-978d-8589dd36d2a5">
       <Group key="0">
-        <Data key="Port Format" value="3,5" />
+        <Data key="Port Format" value="3,3" />
       </Group>
     </Group>
     <Group key="cc3bcd7e-5dc0-48ea-9bf6-6aa082be1ada">
