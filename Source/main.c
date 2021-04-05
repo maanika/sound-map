@@ -12,6 +12,10 @@
 #include "battery_level.h"
 #include "mode.h"
 #include "path.h"
+#if OBJ_DETECT_MODE == 1
+    #include "distance.h"
+    #include "motor.h"
+#endif
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -34,6 +38,10 @@
 #define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 5)
 #define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 6)
 #define TASK_BUTTON_PRIO        (configMAX_PRIORITIES - 1)
+#if OBJ_DETECT_MODE == 1
+    #define TASK_MOTOR_PRIO     (configMAX_PRIORITIES - 7)
+    #define TASK_DIS_PRIO       (configMAX_PRIORITIES - 8)
+#endif
 
 /* Task Stack Size */
 #define TASK_GPS_STK_SIZE           300
@@ -42,6 +50,10 @@
 #define TASK_DIRECTION_STK_SIZE     100
 #define TASK_BATTERY_LEVEL_STK_SIZE 300
 #define TASK_BUTTON_STK_SIZE        300
+#if OBJ_DETECT_MODE == 1
+    #define TASK_MOTOR_STK_SIZE     200
+    #define TASK_DIS_STK_SIZE       200
+#endif
 
 /*-----------------------------------------------------------*/
 /* Global Varaibles */
@@ -85,6 +97,11 @@ int batteryLevelValue = 0;
     char tempStr[100]; 
 #endif
 
+/* Variables for object detection */
+#if OBJ_DETECT_MODE == 1
+    ultrasonicSensor ultrasonicReadings;
+#endif
+
 /*-----------------------------------------------------------*/
 /* Task Handlers */
 TaskHandle_t vTaskGPSHandle           = NULL;
@@ -93,6 +110,10 @@ TaskHandle_t vTaskSpeechHandle        = NULL;
 TaskHandle_t vTaskDirectionHandle     = NULL;
 TaskHandle_t vTaskBatteryLevelHandle  = NULL;
 TaskHandle_t vTaskButtonHandle        = NULL;
+#if OBJ_DETECT_MODE == 1
+    TaskHandle_t xTaskMotorHandle     = NULL;
+    TaskHandle_t xTaskDistanceHandle  = NULL;
+#endif
 
 /* Semaphore Handlers */
 SemaphoreHandle_t xGPSSemaphore;
@@ -114,7 +135,10 @@ static void vTaskSpeech         ( void *pvParameter );
 static void vTaskDirection      ( void *pvParameter );
 static void vTaskBatteryLevel   ( void *pvParameter );
 static void vTaskButton         ( void *pvParameter );
-
+#if OBJ_DETECT_MODE == 1
+static void vTaskDistance       ( void *pvParameter );
+static void vTaskMotor          ( void *pvParameter );
+#endif
 /*-----------------------------------------------------------*/
 /* Interrupt Service Routines */
 CY_ISR( ISR_GPS_Received )
@@ -246,6 +270,24 @@ int main( void )
             #endif
             while(1){};
         }
+        
+        #if OBJ_DETECT_MODE == 1
+            err = xTaskCreate(vTaskDistance, "task distance", TASK_DIS_STK_SIZE, (void*) 0, TASK_DIS_PRIO, &xTaskDistanceHandle);
+            if (err != pdPASS){
+                sprintf(tempStr, "Failed to Create Task Distance\n");
+                UART_WriteTxData(0x0d);
+                UART_PutString(tempStr);
+                while(1){};
+            }
+            
+            err = xTaskCreate(vTaskMotor, "task motor", TASK_MOTOR_STK_SIZE, (void*) 0, TASK_MOTOR_PRIO, &xTaskMotorHandle);
+            if (err != pdPASS){
+                sprintf(tempStr, "Failed to Create Task Motor\n");
+                UART_WriteTxData(0x0d);
+                UART_PutString(tempStr);
+                while(1){};
+            }
+        #endif
         
         #if DEBUG_PRINT_MODE == 1
             sprintf( tempStr, "Main: Start\n\n" );
@@ -635,4 +677,50 @@ static void vTaskButton ( void *pvParameter )
         vTaskSuspend(NULL);
     }
 }
+
+
+/*-----------------------------------------------------------*/
+#if OBJ_DETECT_MODE == 1
+void vTaskDistance(void *pvParameter)
+{
+    (void) pvParameter;
+    
+    /* start components required for ultrasonic sensors. */
+    startUltrasonicSensors();
+    
+    const TickType_t xDelay1000ms = pdMS_TO_TICKS(1000UL);
+
+    while(1)
+    {
+        distanceReading( &ultrasonicReadings );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Distance 1 : %lf cm         Distance 2 : %lf cm           Distance 3 : %lf cm\n",
+                ultrasonicReadings.distance1, ultrasonicReadings.distance2, ultrasonicReadings.distance3);
+            UART_PutString(tempStr);
+        #endif
+        /* Task should execute every 2000 milliseconds exactly. */
+        vTaskDelay( xDelay1000ms );
+    }
+}
+
+/*-----------------------------------------------------------*/
+void vTaskMotor(void *pvParameter)
+{
+    (void) pvParameter;
+    
+    /* start components required for motors. */
+    startMotors();
+    
+    const TickType_t xDelay2093ms = pdMS_TO_TICKS(2093UL);
+    
+    while(1)
+    {
+        setMotors( (int)ultrasonicReadings.distance1, (int)ultrasonicReadings.distance2, (int)ultrasonicReadings.distance3);
+       
+        /* Task should execute every 2000 milliseconds exactly. */
+        vTaskDelay( xDelay2093ms );
+    }
+}
+#endif
+/*-----------------------------------------------------------*/
 /* [] END OF FILE */
