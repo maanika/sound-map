@@ -23,6 +23,7 @@
 #include "queue.h"
 
 #define TABLE_LENGTH 90
+#define PATH_PROXIMITY 5 // update checkpoint when user is within PATH_PROMIMITY meters
 
 #define ON();       { AMux_1_Start(); AMux_2_Start(); }
 #define OFF();      { AMux_1_DisconnectAll(); AMux_2_DisconnectAll();}
@@ -60,21 +61,21 @@
 /* Path planning variables */
 struct Path path = {
     /* Checkpoint latitudes */      /* Checkpoint longitudes */
-    .checkpointLat[0] = -37.911547, .checkpointLon[0] = 145.13335,
-    .checkpointLat[1] = -37.911685, .checkpointLon[1] = 145.13398,
-    .checkpointLat[2] = -37.911286, .checkpointLon[2] = 145.13415,
-    .checkpointLat[3] = -37.911307, .checkpointLon[3] = 145.13442,
-    .checkpointLat[4] = -37.911286, .checkpointLon[4] = 145.13415,
-    .checkpointLat[5] = -37.910313, .checkpointLon[5] = 145.13432,
-    .checkpointLat[6] = -37.910275, .checkpointLon[6] = 145.13333,
+    .checkpointLat[0] = -37.911340, .checkpointLon[0] = 145.133382,
+    .checkpointLat[1] = -37.911751, .checkpointLon[1] = 145.133984,
+    .checkpointLat[2] = -37.911251, .checkpointLon[2] = 145.134131,
+    .checkpointLat[3] = -37.911283, .checkpointLon[3] = 145.134456,
+    .checkpointLat[4] = -37.911251, .checkpointLon[4] = 145.134131,
+    .checkpointLat[5] = -37.910270, .checkpointLon[5] = 145.134342,
+    .checkpointLat[6] = -37.910278, .checkpointLon[6] = 145.133317,
     .checkpointLat[7] = -37.910235, .checkpointLon[7] = 145.13211,
-    .checkpointLat[8] = -37.909966, .checkpointLon[8] = 145.13219,
+    .checkpointLat[8] = -37.909957, .checkpointLon[8] = 145.132161,
     .checkpointLat[9] = -37.910235, .checkpointLon[9] = 145.13211,
-    .checkpointLat[10] = -37.910215, .checkpointLon[10] = 145.13167,
-    .checkpointLat[11] = -37.910688, .checkpointLon[11] = 145.13158,
-    .checkpointLat[12] = -37.910862, .checkpointLon[12] = 145.13277,
-    .checkpointLat[13] = -37.911202, .checkpointLon[13] = 145.13298,
-    .checkpointLat[14] = -37.911295, .checkpointLon[14] = 145.13339,
+    .checkpointLat[10] = -37.910128, .checkpointLon[10] = 145.131608,
+    .checkpointLat[11] = -37.910693, .checkpointLon[11] = 145.131576,
+    .checkpointLat[12] = -37.910889, .checkpointLon[12] = 145.132747,
+    .checkpointLat[13] = -37.911165, .checkpointLon[13] = 145.132943,
+    .checkpointLat[14] = -37.911292, .checkpointLon[14] = 145.133382,
     .checkpointOperation = 0,   /* addition by default */
     .checkpointDestSelected = pdFALSE,
     .checkpointDestName = ' ',
@@ -431,7 +432,7 @@ static void vTaskPath( void *pvParameter )
                 path.checkpointLat[nextCheckpoint], path.checkpointLon[nextCheckpoint] );
         }
         
-        if ( diffDistance < 15 || path.atDestination == pdTRUE )
+        if ( diffDistance < PATH_PROXIMITY || path.atDestination == pdTRUE )
         {
             if ( path.checkpointOperation == 0 && path.atDestination == pdFALSE )
             { 
