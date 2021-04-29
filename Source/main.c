@@ -589,7 +589,8 @@ static void vTaskSpeech ( void *pvParameter )
                 break;
         }
         
-        if (soundState == 1) SOUND(); // turn navigation sound back on if destination is selected and path task running
+        if (soundState == pdTRUE) {SOUND();} // turn navigation sound back on if destination is selected and path task running
+        else {SPEECH();}
         
         // Restart the RTOS kernel.  We want to force a context switch, 
         //but there is no point if resuming the scheduler caused a context switch already.
