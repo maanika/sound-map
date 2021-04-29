@@ -29,6 +29,7 @@
 *                               CONSTANT DEFINITIONS
 *******************************************************************************/
 #define TABLE_LENGTH 720
+#define SOUND_VOLUME 1.5
 
 #define ON();       { AMux_1_Start(); AMux_2_Start(); }
 #define OFF();      { AMux_1_DisconnectAll(); AMux_2_DisconnectAll();}
@@ -730,8 +731,8 @@ static void vTaskSound ( void *pvParameter )
             // implement time delay on left (1)
             // right(2) will lead while left(1) will lag
             // make left side quieter
-            updateSineWave(0, IIDattenuation, 1);
-            updateSineWave(phaseDelayCycles, 1, 2);
+            updateSineWave(0, IIDattenuation/SOUND_VOLUME, 1);
+            updateSineWave(phaseDelayCycles, 1/SOUND_VOLUME, 2);
 
             // update frequency
             DDS24_1_SetFrequency((freq / 2.4965) * TABLE_LENGTH);
@@ -744,8 +745,8 @@ static void vTaskSound ( void *pvParameter )
             // implement time delay on right (2)
             // left (1) will lead while right(2) will lag
             // make right side quieter
-            updateSineWave(phaseDelayCycles, 1, 1);
-            updateSineWave(0, IIDattenuation, 2);
+            updateSineWave(phaseDelayCycles, 1/SOUND_VOLUME, 1);
+            updateSineWave(0, IIDattenuation/SOUND_VOLUME, 2);
             
             // update frequency
             DDS24_1_SetFrequency((freq / 2.4965) * TABLE_LENGTH);   
