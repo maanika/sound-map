@@ -49,6 +49,7 @@
 #define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 6)
 #define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 7)
 #define TASK_BUTTON_PRIO        (configMAX_PRIORITIES - 1)
+#define TASK_LED_PRIO           (configMAX_PRIORITIES - 10)
 #if OBJ_DETECT_MODE == 1
     #define TASK_MOTOR_PRIO     (configMAX_PRIORITIES - 8)
     #define TASK_DIS_PRIO       (configMAX_PRIORITIES - 9)
@@ -64,10 +65,12 @@
 #define TASK_SOUND_STK_SIZE         500
 #define TASK_BATTERY_LEVEL_STK_SIZE 500
 #define TASK_BUTTON_STK_SIZE        500
+#define TASK_LED_STK_SIZE           200
 #if OBJ_DETECT_MODE == 1
     #define TASK_MOTOR_STK_SIZE     200
     #define TASK_DIS_STK_SIZE       200
 #endif
+
 
 /*******************************************************************************
 *                               GLOBAL VARIABLES
@@ -136,6 +139,7 @@ TaskHandle_t vTaskDirectionHandle     = NULL;
 TaskHandle_t vTaskSoundHandle         = NULL;
 TaskHandle_t vTaskBatteryLevelHandle  = NULL;
 TaskHandle_t vTaskButtonHandle        = NULL;
+TaskHandle_t vTaskLEDHandle           = NULL;
 #if OBJ_DETECT_MODE == 1
     TaskHandle_t xTaskMotorHandle     = NULL;
     TaskHandle_t xTaskDistanceHandle  = NULL;
@@ -146,6 +150,7 @@ TaskHandle_t vTaskButtonHandle        = NULL;
 *******************************************************************************/
 SemaphoreHandle_t xGPSSemaphore;
 SemaphoreHandle_t xUARTMutex;
+SemaphoreHandle_t xBatteryLevelMutex;
 
 /*******************************************************************************
 *                               QUEUE HANDLERS
@@ -167,6 +172,7 @@ static void vTaskDirection      ( void *pvParameter );
 static void vTaskSound          ( void *pvParameter );
 static void vTaskBatteryLevel   ( void *pvParameter );
 static void vTaskButton         ( void *pvParameter );
+static void vTaskLED            ( void *pvParameter );
 
 #if OBJ_DETECT_MODE == 1
 static void vTaskDistance       ( void *pvParameter );
@@ -261,10 +267,11 @@ int main( void )
     /* Creating Semaphores and Mutxes */
     xGPSSemaphore = xSemaphoreCreateCounting( 10, 0 );
     xUARTMutex = xSemaphoreCreateMutex();
+    xBatteryLevelMutex = xSemaphoreCreateMutex();
     xButtonTimeQueue = xQueueCreate( 1, sizeof(portFLOAT) );
     
     /* Creating Tasks */
-    if ( xGPSSemaphore != NULL || xUARTMutex != NULL || xButtonTimeQueue != NULL )
+    if ( xGPSSemaphore != NULL || xUARTMutex != NULL || xButtonTimeQueue != NULL || xBatteryLevelMutex != NULL )
     {
         BaseType_t err;
         
@@ -299,6 +306,15 @@ int main( void )
         if ( err != pdPASS ){
             #if DEBUG_PRINT_MODE == 1
                 sprintf( tempStr, "Failed to Create Task Button\n" );
+                UART_PutString( tempStr );
+            #endif
+            while(1){};
+        }
+        
+        err = xTaskCreate ( vTaskLED, "task LED ", TASK_LED_STK_SIZE, (void*) 0, TASK_LED_PRIO, &vTaskLEDHandle );
+        if ( err != pdPASS ){
+            #if DEBUG_PRINT_MODE == 1
+                sprintf( tempStr, "Failed to Create Task LED\n" );
                 UART_PutString( tempStr );
             #endif
             while(1){};
@@ -776,7 +792,11 @@ static void vTaskBatteryLevel ( void *pvParameter )
         }
         if ( batteryNotificationValue == 1 )
         {
-            batteryLevelValue = readBatteryLevel();
+            xSemaphoreTake( xBatteryLevelMutex, portMAX_DELAY );
+            {
+                batteryLevelValue = readBatteryLevel();
+            }
+            xSemaphoreGive( xBatteryLevelMutex );
             xTaskNotify(vTaskSpeechHandle, (uint32_t)(1<<2), (eNotifyAction)eSetValueWithOverwrite );
         }
     }
@@ -862,6 +882,31 @@ static void vTaskButton ( void *pvParameter )
             xTaskNotify(vTaskBatteryLevelHandle, (uint32_t)(1<<0), (eNotifyAction)eSetValueWithOverwrite );
         }
         vTaskSuspend(NULL);
+    }
+}
+
+/*******************************************************************************
+*                               LED TASK
+*******************************************************************************/
+static void vTaskLED( void *pvParameter )
+{
+    (void) pvParameter;
+    const TickType_t xDelay500ms = pdMS_TO_TICKS(500UL);
+    TickType_t xDelayIndicator;
+    int batteryLevel;
+    while (1)
+    {
+        xSemaphoreTake( xBatteryLevelMutex, portMAX_DELAY );
+        {
+            batteryLevel = readBatteryLevel();
+        }
+        xSemaphoreGive( xBatteryLevelMutex );
+        if (batteryLevel > 40)  xDelayIndicator = pdMS_TO_TICKS(10000UL);
+        else xDelayIndicator = pdMS_TO_TICKS(2500UL);
+        Pin_LED_Write(1);
+        vTaskDelay( xDelay500ms );
+        Pin_LED_Write(0);
+        vTaskDelay( xDelayIndicator );
     }
 }
 
