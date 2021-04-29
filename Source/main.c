@@ -163,7 +163,6 @@ CY_ISR( ISR_GPS_Received )
 CY_ISR( ISR_Button )
 {
     BaseType_t xHigherPriorityTaskWoken;
-    BaseType_t xStatus;
     xHigherPriorityTaskWoken = pdFALSE;
     
     /* Find how long the button was pressed for */
