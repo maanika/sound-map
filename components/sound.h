@@ -9,8 +9,7 @@
 void startSoundComponents(void);
 void dmaConfiguration(void);
 void sineWaveInitialize(int freq);
-int updatePhase(uint8 phase, int waveNum);
-int updateAmplitude(double att, int waveNum);
+int updateSineWave(uint8 phase, double att,int waveNum);
 
 /* ALWAYS CALL dmaConfiguration() AND sineWaveInitialize() IN MAIN*/
 

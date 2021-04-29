@@ -33,7 +33,7 @@
 /* Memory allocation related definitions. */
 #define configSUPPORT_STATIC_ALLOCATION         0   /* Static and dynamic are different sides of the same */
 #define configSUPPORT_DYNAMIC_ALLOCATION        1   /*    coin and must always be set opposite each other */
-#define configTOTAL_HEAP_SIZE                   20480
+#define configTOTAL_HEAP_SIZE                   30000
 #define configAPPLICATION_ALLOCATED_HEAP        0
 
 /* Hook function related definitions. */
