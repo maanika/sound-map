@@ -1,3 +1,6 @@
+/*******************************************************************************
+*   Included Headers
+*******************************************************************************/
 #include "project.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -22,6 +25,9 @@
 #include "semphr.h"
 #include "queue.h"
 
+/*******************************************************************************
+*   Constant definitions
+*******************************************************************************/
 #define TABLE_LENGTH 720
 
 #define ON();       { AMux_1_Start(); AMux_2_Start(); }
@@ -31,7 +37,9 @@
 
 #define BlinkLED(); { Pin_LED_Write(1); CyDelayUs(30); Pin_LED_Write(0); } // blink LED indicator - for debugging/testing
 
-/* Task Priority Level */
+/*******************************************************************************
+*   Task Priorities
+*******************************************************************************/
 #define TASK_GPS_PRIO           (configMAX_PRIORITIES - 2)
 #define TASK_PATH_PRIO          (configMAX_PRIORITIES - 3)
 #define TASK_DIRECTION_PRIO     (configMAX_PRIORITIES - 4)
@@ -44,7 +52,9 @@
     #define TASK_DIS_PRIO       (configMAX_PRIORITIES - 9)
 #endif
 
-/* Task Stack Size */
+/*******************************************************************************
+*  Task Stack Size
+*******************************************************************************/
 #define TASK_GPS_STK_SIZE           500
 #define TASK_SPEECH_STK_SIZE        500
 #define TASK_PATH_STK_SIZE          500
@@ -57,8 +67,9 @@
     #define TASK_DIS_STK_SIZE       200
 #endif
 
-/*-----------------------------------------------------------*/
-/* Global Varaibles */
+/*******************************************************************************
+*   Global Variables
+*******************************************************************************/
 /* Path planning variables */
 struct Path path = {
     /* Checkpoint latitudes */      /* Checkpoint longitudes */
@@ -91,6 +102,9 @@ double direction = 0;
 /* Path variables */
 int nextCheckpoint = 0; // stores the next checkpoint array index
 
+/* Sound variables */
+BaseType_t soundState = pdFALSE;
+
 /* Battery Level variables */
 int batteryLevelValue = 0;
 
@@ -108,8 +122,9 @@ int batteryLevelValue = 0;
     ultrasonicSensor ultrasonicReadings;
 #endif
 
-/*-----------------------------------------------------------*/
-/* Task Handlers */
+/*******************************************************************************
+*   Task Handlers
+*******************************************************************************/
 TaskHandle_t vTaskGPSHandle           = NULL;
 TaskHandle_t vTaskPathHandle          = NULL;
 TaskHandle_t vTaskSpeechHandle        = NULL;
@@ -122,19 +137,25 @@ TaskHandle_t vTaskButtonHandle        = NULL;
     TaskHandle_t xTaskDistanceHandle  = NULL;
 #endif
 
-/* Semaphore Handlers */
+/*******************************************************************************
+*   Semaphore Handlers
+*******************************************************************************/
 SemaphoreHandle_t xGPSSemaphore;
 SemaphoreHandle_t xUARTMutex;
 
-/* Queue Handlers */
+/*******************************************************************************
+*   Queue Handlers
+*******************************************************************************/
 QueueHandle_t xButtonTimeQueue;
 
-/*-----------------------------------------------------------*/
-/* Function declarations */
+/*******************************************************************************
+*   Function declarations
+*******************************************************************************/
 extern void RTOS_Start( void );
 
-/*-----------------------------------------------------------*/
-/* Task declarations */
+/*******************************************************************************
+*   Task declarations
+*******************************************************************************/
 static void vTaskGPS            ( void *pvParameter );
 static void vTaskPath           ( void *pvParameter );
 static void vTaskSpeech         ( void *pvParameter );
@@ -147,8 +168,11 @@ static void vTaskButton         ( void *pvParameter );
 static void vTaskDistance       ( void *pvParameter );
 static void vTaskMotor          ( void *pvParameter );
 #endif
-/*-----------------------------------------------------------*/
-/* Interrupt Service Routines */
+
+/*******************************************************************************
+*  Interrupt Service Routines
+*******************************************************************************/
+/* GPS ISR */
 CY_ISR( ISR_GPS_Received )
 {
     BaseType_t xHigherPriorityTaskWoken;
@@ -157,9 +181,7 @@ CY_ISR( ISR_GPS_Received )
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
-/*-----------------------------------------------------------*/
-/* Interrupt Service Routines */
-
+/* Button ISR */
 CY_ISR( ISR_Button )
 {
     BaseType_t xHigherPriorityTaskWoken;
@@ -182,7 +204,9 @@ CY_ISR( ISR_Button )
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );  
 }
 
-/*-----------------------------------------------------------*/
+/*******************************************************************************
+*  PSOC_Start Function
+*******************************************************************************/
 void PSOC_Start( void )
 {
     /* Start UART for GPS and debug printing */
@@ -194,7 +218,6 @@ void PSOC_Start( void )
     /* Start and Initialize Sound */
     startSoundComponents();
     dmaConfiguration();
-    
     
     /* Start and Initialize Speech */
     synthInitialize();
@@ -209,7 +232,9 @@ void PSOC_Start( void )
     ON();
 }
 
-/*-----------------------------------------------------------*/
+/*******************************************************************************
+*  Main
+*******************************************************************************/
 int main( void )
 {
     CyGlobalIntEnable; /* Enable global interrupts. */
@@ -219,9 +244,7 @@ int main( void )
     PSOC_Start();
     
     SPEECH();
-    // Vocalize Welcome to SoundMap
-    sayWelocome(); sayPause();
-    
+    sayWelocome(); sayPause(); // Vocalize Welcome greeting
     OFF();
     
     /* Interrupts */
@@ -314,8 +337,9 @@ int main( void )
     for(;;);
 }
 
-/*-----------------------------------------------------------*/
-/* Tasks */
+/*******************************************************************************
+*                                   GPS TASK
+*******************************************************************************/
 static void vTaskGPS ( void *pvParameter )
 {
     (void) pvParameter;
@@ -385,6 +409,7 @@ static void vTaskGPS ( void *pvParameter )
         if ( firstFix == 0 && longitudeInDec != 0 && latitudeInDec != 0 && path.checkpointDestSelected == pdTRUE )
         {
             firstFix = 1; // run one time
+            soundState = pdTRUE; // navigation sound on
             
             /* Set Path Details */
             pathStart ( &path, latitudeInDec, longitudeInDec );
@@ -418,7 +443,9 @@ static void vTaskGPS ( void *pvParameter )
     }
 }
 
-/*-----------------------------------------------------------*/
+/*******************************************************************************
+*                                   PATH TASK
+*******************************************************************************/
 static void vTaskPath( void *pvParameter )
 {
     (void) pvParameter;
@@ -466,6 +493,7 @@ static void vTaskPath( void *pvParameter )
                 path.checkpointDestSelected = pdFALSE; // no destination selected
                 path.atDestination = pdFALSE; // not at destination - reset
                 firstFix = 0; // to create vTaskPathStart once again in vTaskGPS
+                soundState = pdFALSE; // sound navigation off
                 vTaskDelete(vTaskDirectionHandle);
                 vTaskDelete(vTaskSoundHandle);
                 vTaskDelete(NULL); // delete current task - and all others
@@ -483,7 +511,9 @@ static void vTaskPath( void *pvParameter )
     }
 }
 
-/*-----------------------------------------------------------*/
+/*******************************************************************************
+*                                   SPEECH TASK
+*******************************************************************************/
 static void vTaskSpeech ( void *pvParameter )
 {
     (void) pvParameter;
@@ -555,7 +585,7 @@ static void vTaskSpeech ( void *pvParameter )
                 break;
         }
         
-        //if (firstFix == 1) SOUND(); // turn on sund if destination selected and path task running
+        if (soundState == 1) SOUND(); // turn navigation sound back on if destination is selected and path task running
         
         // Restart the RTOS kernel.  We want to force a context switch, 
         //but there is no point if resuming the scheduler caused a context switch already.
@@ -567,7 +597,9 @@ static void vTaskSpeech ( void *pvParameter )
     }
 }
 
-/*-----------------------------------------------------------*/
+/*******************************************************************************
+*                                   DIRECTION TASK
+*******************************************************************************/
 static void vTaskDirection ( void *pvParameter )
 {
     (void) pvParameter;
@@ -587,13 +619,13 @@ static void vTaskDirection ( void *pvParameter )
         compassRead(&compass);
         
         // Magnetometer calibration
-            Xm_off = compass.m_x*(100000.0/1100.0) + 3190.321761; //X-axis combined bias (Non calibrated data - bias)
-            Ym_off = compass.m_y*(100000.0/1100.0) + 6257.765070; //Y-axis combined bias (Default: substracting bias)
-            Zm_off = compass.m_z*(100000.0/980.0 ) - 1176.670017; //Z-axis combined bias
+        Xm_off = compass.m_x*(100000.0/1100.0) + 3190.321761; //X-axis combined bias (Non calibrated data - bias)
+        Ym_off = compass.m_y*(100000.0/1100.0) + 6257.765070; //Y-axis combined bias (Default: substracting bias)
+        Zm_off = compass.m_z*(100000.0/980.0 ) - 1176.670017; //Z-axis combined bias
             
-            Xm_cal =  0.943220*Xm_off +0.005519*Ym_off +0.022864*Zm_off; //X-axis correction for combined scale factors (Default: positive factors)
-            Ym_cal =  0.005519*Xm_off +0.920150*Ym_off +0.001051*Zm_off; //Y-axis correction for combined scale factors
-            Zm_cal =  0.022864*Xm_off +0.001051*Ym_off +1.170044*Zm_off; //Z-axis correction for combined scale factor
+        Xm_cal =  0.943220*Xm_off +0.005519*Ym_off +0.022864*Zm_off; //X-axis correction for combined scale factors (Default: positive factors)
+        Ym_cal =  0.005519*Xm_off +0.920150*Ym_off +0.001051*Zm_off; //Y-axis correction for combined scale factors
+        Zm_cal =  0.022864*Xm_off +0.001051*Ym_off +1.170044*Zm_off; //Z-axis correction for combined scale factor
         
         // Low-Pass filter magnetometer
         fXm = Xm_cal * alpha + (fXm * (1.0 - alpha));
@@ -608,7 +640,7 @@ static void vTaskDirection ( void *pvParameter )
         
         // Calculate angle between current and next checkpoint coordinates
         difference = GPSbearing(latitudeInDec, longitudeInDec ,
-            path.checkpointLat[nextCheckpoint], path.checkpointLon[nextCheckpoint]); // degreesspeeeeeeeeeeeeeeeee
+            path.checkpointLat[nextCheckpoint], path.checkpointLon[nextCheckpoint]); // degrees
         
         sprintf(tempStr, "      Difference: %.2f",difference );
         UART_PutString( tempStr );
@@ -620,7 +652,7 @@ static void vTaskDirection ( void *pvParameter )
         //sprintf(tempStr, "      Direction: %.3f", direction * 180/M_PI);
         //UART_PutString( tempStr );
         
-        /*// Start test program for offsetAngle
+        /*// TEST program for offsetAngle
         direction = direction + 2*(M_PI/180); // set angle to direction need to go in
         if (direction > M_PI) direction = -M_PI;
         // End of test program */
@@ -628,7 +660,10 @@ static void vTaskDirection ( void *pvParameter )
         vTaskDelay(xDelay250ms);
     }
 }
-/*-----------------------------------------------------------*/
+
+/*******************************************************************************
+*                                   SOUND TASK
+*******************************************************************************/
 static void vTaskSound ( void *pvParameter )
 {
     (void) pvParameter;
@@ -716,7 +751,9 @@ static void vTaskSound ( void *pvParameter )
     }
 }
 
-/*-----------------------------------------------------------*/
+/*******************************************************************************
+*                                 BATTERY LEVEL TASK
+*******************************************************************************/
 static void vTaskBatteryLevel ( void *pvParameter )
 {
     (void) pvParameter;
@@ -739,7 +776,9 @@ static void vTaskBatteryLevel ( void *pvParameter )
     }
 }
 
-/*-----------------------------------------------------------*/
+/*******************************************************************************
+*                                  BUTTON TASK
+*******************************************************************************/
 static void vTaskButton ( void *pvParameter )
 {
     (void) pvParameter;
@@ -820,8 +859,9 @@ static void vTaskButton ( void *pvParameter )
     }
 }
 
-
-/*-----------------------------------------------------------*/
+/*******************************************************************************
+*                           DISTANCE AND MOTOR TASK
+*******************************************************************************/
 #if OBJ_DETECT_MODE == 1
 void vTaskDistance(void *pvParameter)
 {
@@ -864,5 +904,5 @@ void vTaskMotor(void *pvParameter)
     }
 }
 #endif
-/*-----------------------------------------------------------*/
+
 /* [] END OF FILE */
