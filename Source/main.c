@@ -153,7 +153,7 @@ SemaphoreHandle_t xUARTMutex;
 QueueHandle_t xButtonTimeQueue;
 
 /*******************************************************************************
-*   Function declarations
+*                             FUNCTION DECLARATIONS
 *******************************************************************************/
 extern void RTOS_Start( void );
 
