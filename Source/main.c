@@ -40,8 +40,8 @@
 #define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 7)
 #define TASK_BUTTON_PRIO        (configMAX_PRIORITIES - 1)
 #if OBJ_DETECT_MODE == 1
-    #define TASK_MOTOR_PRIO     (configMAX_PRIORITIES - 7)
-    #define TASK_DIS_PRIO       (configMAX_PRIORITIES - 8)
+    #define TASK_MOTOR_PRIO     (configMAX_PRIORITIES - 8)
+    #define TASK_DIS_PRIO       (configMAX_PRIORITIES - 9)
 #endif
 
 /* Task Stack Size */
