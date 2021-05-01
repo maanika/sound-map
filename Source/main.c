@@ -30,6 +30,7 @@
 *******************************************************************************/
 #define TABLE_LENGTH 720
 #define SOUND_VOLUME 1.5
+#define PATH_PROXIMITY 5
 
 #define ON();       { AMux_1_Start(); AMux_2_Start(); }
 #define OFF();      { AMux_1_DisconnectAll(); AMux_2_DisconnectAll();}
@@ -490,7 +491,7 @@ static void vTaskPath( void *pvParameter )
                 path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
         }
         
-        if ( diffDistance < 10 || path.atDestination == pdTRUE )
+        if ( diffDistance < PATH_PROXIMITY || path.atDestination == pdTRUE )
         {
             if ( path.checkpointOperation == 0 && path.atDestination == pdFALSE )
             { 
