@@ -13,7 +13,7 @@
 #define configUSE_TICKLESS_IDLE                 0
 #define configCPU_CLOCK_HZ                      ( ( unsigned long ) BCLK__BUS_CLK__HZ  )
 #define configTICK_RATE_HZ                      1000
-#define configMAX_PRIORITIES                    10
+#define configMAX_PRIORITIES                    11
 #define configMINIMAL_STACK_SIZE                128   /* M3 words - reserves 512 bytes */
 #define configMAX_TASK_NAME_LEN                 16
 #define configUSE_16_BIT_TICKS                  0
