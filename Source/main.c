@@ -30,7 +30,7 @@
 *******************************************************************************/
 #define TABLE_LENGTH 720
 #define SOUND_VOLUME 1.5
-#define PATH_PROXIMITY 5
+#define PATH_PROXIMITY 10
 
 #define ON();       { AMux_1_Start(); AMux_2_Start(); }
 #define OFF();      { AMux_1_DisconnectAll(); AMux_2_DisconnectAll();}
@@ -419,8 +419,8 @@ static void vTaskGPS ( void *pvParameter )
         latitudeInDec = min2dec( latitude ) * -1;
         
         #if DEBUG_PRINT_MODE == 1
-            //sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
-            //UART_PutString( tempStr );
+            sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
+            UART_PutString( tempStr );
         #endif
         
         if ( longitudeInDec == 0 && latitudeInDec == 0 )
@@ -526,8 +526,8 @@ static void vTaskPath( void *pvParameter )
             sprintf( tempStr, "Current Checkpoint: H%d      Next Checkpoint:    H%d\n", 
                 checkpointName[path.checkpointCurrent], checkpointName[nextCheckpoint] );
             UART_PutString( tempStr );
-            //sprintf( tempStr, "Distance to next checkpoint: %.2f \n", diffDistance );
-            //UART_PutString( tempStr);
+            sprintf( tempStr, "Distance to next checkpoint: %.2f \n", diffDistance );
+            UART_PutString( tempStr);
         #endif
         vTaskDelay( xDelay1000ms );
     }
@@ -892,7 +892,7 @@ static void vTaskButton ( void *pvParameter )
 static void vTaskLED( void *pvParameter )
 {
     (void) pvParameter;
-    const TickType_t xDelay500ms = pdMS_TO_TICKS(500UL);
+    const TickType_t xDelay2500ms = pdMS_TO_TICKS(2500UL);
     TickType_t xDelayIndicator;
     int batteryLevel;
     while (1)
@@ -903,9 +903,9 @@ static void vTaskLED( void *pvParameter )
         }
         xSemaphoreGive( xBatteryLevelMutex );
         if (batteryLevel > 40)  xDelayIndicator = pdMS_TO_TICKS(10000UL);
-        else xDelayIndicator = pdMS_TO_TICKS(2500UL);
+        else xDelayIndicator = xDelay2500ms;
         Pin_LED_Write(1);
-        vTaskDelay( xDelay500ms );
+        vTaskDelay( xDelay2500ms );
         Pin_LED_Write(0);
         vTaskDelay( xDelayIndicator );
     }
