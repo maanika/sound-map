@@ -71,8 +71,8 @@ static float readBatteryVoltage()
         volts = ADC_Battery_CountsTo_Volts(adcResult) / VOLTAGE_DIVIDER_RATIO;
 
         #if DEBUG_PRINT_MODE == 1
-            sprintf(temp, "Battery volts: %.2f\n", volts);
-            UART_PutString(temp);
+            //sprintf(temp, "Battery volts: %.2f\n", volts);
+            //UART_PutString(temp);
         #endif
     }
     return volts;

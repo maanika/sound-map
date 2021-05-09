@@ -29,7 +29,7 @@
 *                               CONSTANT DEFINITIONS
 *******************************************************************************/
 #define TABLE_LENGTH 720
-#define SOUND_VOLUME 1.5
+#define SOUND_VOLUME 1.6
 #define PATH_PROXIMITY 10
 
 #define ON();       { AMux_1_Start(); AMux_2_Start(); }
@@ -129,6 +129,9 @@ int batteryLevelValue = 0;
 #if OBJ_DETECT_MODE == 1
     ultrasonicSensor ultrasonicReadings;
 #endif
+
+/* TEMPORARY FOR TESTING */
+double diffDistance;
 
 /*******************************************************************************
 *                               TASK HANDLERS
@@ -419,8 +422,8 @@ static void vTaskGPS ( void *pvParameter )
         latitudeInDec = min2dec( latitude ) * -1;
         
         #if DEBUG_PRINT_MODE == 1
-            sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
-            UART_PutString( tempStr );
+            //sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
+            //UART_PutString( tempStr );
         #endif
         
         if ( longitudeInDec == 0 && latitudeInDec == 0 )
@@ -471,7 +474,6 @@ static void vTaskGPS ( void *pvParameter )
 static void vTaskPath( void *pvParameter )
 {
     (void) pvParameter;
-    double diffDistance;
     const TickType_t xDelay1000ms = pdMS_TO_TICKS(1000UL);
 
     while (1)
@@ -523,11 +525,11 @@ static void vTaskPath( void *pvParameter )
             }
         }
         #if DEBUG_PRINT_MODE == 1
-            sprintf( tempStr, "Current Checkpoint: H%d      Next Checkpoint:    H%d\n", 
-                checkpointName[path.checkpointCurrent], checkpointName[nextCheckpoint] );
-            UART_PutString( tempStr );
-            sprintf( tempStr, "Distance to next checkpoint: %.2f \n", diffDistance );
-            UART_PutString( tempStr);
+            //sprintf( tempStr, "Current Checkpoint: H%d      Next Checkpoint:    H%d\n", 
+                //checkpointName[path.checkpointCurrent], checkpointName[nextCheckpoint] );
+            //UART_PutString( tempStr );
+            //sprintf( tempStr, "Distance to next checkpoint: %.2f \n", diffDistance );
+            //UART_PutString( tempStr);
         #endif
         vTaskDelay( xDelay1000ms );
     }
@@ -658,15 +660,15 @@ static void vTaskDirection ( void *pvParameter )
         /* Calculate bearing */
         bearing = atan2(fYm,fXm);
         if (bearing < 0) bearing += 2*M_PI;
-        sprintf(tempStr, "Bearings: %.2f", bearing*180/M_PI);
-        UART_PutString( tempStr );
+        //sprintf(tempStr, "Bearings: %.2f", bearing*180/M_PI);
+        //UART_PutString( tempStr );
         
         /* Calculate angle between current and next checkpoint coordinates (degrees) */
         difference = GPSbearing(latitudeInDec, longitudeInDec ,
             path.checkpointLat[nextCheckpoint], path.checkpointLon[nextCheckpoint]);
         
-        sprintf(tempStr, "      Difference: %.2f",difference );
-        UART_PutString( tempStr );
+        //sprintf(tempStr, "      Difference: %.2f",difference );
+        //UART_PutString( tempStr );
         
         /* calculate the direction need to walk in to get to destination (radians) */
         if (bearing > M_PI) bearing = bearing - 2*M_PI;     // make bearing  within -M_PI to M_PI
@@ -699,6 +701,7 @@ static void vTaskSound ( void *pvParameter )
     int leftFast, rightFast;
     float IIDattenuation;
     const TickType_t xDelay250ms = pdMS_TO_TICKS(250UL);
+    int printCount = 0;
     
     sineWaveInitialize(400);
 
@@ -710,10 +713,12 @@ static void vTaskSound ( void *pvParameter )
         //restrict angle to range of -pi to pi
         if (offsetAngle > M_PI) offsetAngle = offsetAngle - 2*M_PI; 
         if (offsetAngle < -M_PI) offsetAngle = offsetAngle + 2*M_PI;
-            
-        sprintf(tempStr, "          offsetAngle: %.2f\n", offsetAngle*180/M_PI);    
-        UART_PutString(tempStr);
         
+        // print every second
+        if ( ( printCount%2 ) == 0 ){
+            sprintf(tempStr, "%.2f\t%.2f\n", diffDistance, offsetAngle*180/M_PI);    
+            UART_PutString(tempStr);
+        }
         leftFast = offsetAngle < 0; //left is earlier then right
         rightFast = offsetAngle > 0; //right is earlier then left
         
