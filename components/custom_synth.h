@@ -79,6 +79,8 @@ void sayBatteryPercent(int number);
 
 void sayWelocome();
 void sayPause();
+void sayRight();
+void sayLeft();
 
 #endif
 

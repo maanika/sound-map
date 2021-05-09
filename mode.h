@@ -28,5 +28,6 @@
 *******************************************************************************/
     #define DEBUG_PRINT_MODE 1
     #define OBJ_DETECT_MODE  0
+    #define OBJ_ANALYSIS_TEST 1
 
 #endif

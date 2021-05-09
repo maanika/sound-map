@@ -259,7 +259,9 @@ int main( void )
     
     SPEECH();
     sayWelocome(); sayPause();                    // Vocalize Welcome greeting
-    OFF();
+    #if (OBJ_ANALYSIS_TEST == 0)
+        OFF();
+    #endif
     
     /* Interrupts */
     isr_GPS_Received_ClearPending();              // Cancel any pending isr_RxSignal interrupts
@@ -455,6 +457,8 @@ static void vTaskGPS ( void *pvParameter )
                 #endif
                 while(1){};
             }
+            
+            #if (OBJ_ANALYSIS_TEST == 0)
             err = xTaskCreate( vTaskSound, "task sound", TASK_SOUND_STK_SIZE, (void*) 0, TASK_SOUND_PRIO, &vTaskSoundHandle );
             if ( err != pdPASS ){
                 #if DEBUG_PRINT_MODE == 1
@@ -462,7 +466,8 @@ static void vTaskGPS ( void *pvParameter )
                     UART_PutString( tempStr );
                 #endif
                 while(1){};
-            }           
+            }
+            #endif
         }
         vTaskDelay(xDelay40ms);
     }
@@ -552,8 +557,10 @@ static void vTaskSpeech ( void *pvParameter )
             #endif
         }
 
+        #if (OBJ_ANALYSIS_TEST == 0)
         SPEECH(); // turn on speech (sound is offed automatically - turn on at end if needed)
-                
+        #endif
+        
         //Prevent the RTOS kernel swapping out the task.
         vTaskSuspendAll();
         //Interrupts will still operate and the tick count will be maintained.
@@ -609,8 +616,10 @@ static void vTaskSpeech ( void *pvParameter )
                 break;
         }
         
+        #if (OBJ_ANALYSIS_TEST == 0)
         if (soundState == pdTRUE) {SOUND();} // turn navigation sound back on if destination is selected and path task running
         else {SPEECH();}
+        #endif
         
         // Restart the RTOS kernel.  We want to force a context switch, 
         //but there is no point if resuming the scheduler caused a context switch already.
@@ -637,6 +646,7 @@ static void vTaskDirection ( void *pvParameter )
     float fZm = 0;
     double bearing, difference;
     const TickType_t xDelay250ms = pdMS_TO_TICKS(250UL);
+    const TickType_t xDelay2000ms = pdMS_TO_TICKS(2000UL);
 
     while(1)
     {
@@ -674,8 +684,25 @@ static void vTaskDirection ( void *pvParameter )
         if (bearing > M_PI) bearing = bearing - 2*M_PI;     // make bearing  within -M_PI to M_PI
         direction = difference*M_PI/180 - bearing;
         
-        //sprintf(tempStr, "      Direction: %.3f", direction * 180/M_PI);
-        //UART_PutString( tempStr );
+        sprintf(tempStr, "%.2f\t%.2f", diffDistance, direction * 180/M_PI);
+        UART_PutString( tempStr );
+        
+        if ( (direction * 180/M_PI ) > 45)
+        {
+            //turn right
+            sayRight();
+            sprintf(tempStr, "turn right 45\n");
+            UART_PutString( tempStr );
+            vTaskDelay(xDelay2000ms);
+        }
+        else if ( (direction * 180/M_PI ) < -45)
+        {
+            // turn left
+            sayLeft();
+            sprintf(tempStr, "turn left 45\n");
+            UART_PutString( tempStr );
+            vTaskDelay(xDelay2000ms);
+        }
         
         /*// TEST program for offsetAngle
         direction = direction + 2*(M_PI/180); // set angle to direction need to go in
@@ -686,6 +713,7 @@ static void vTaskDirection ( void *pvParameter )
     }
 }
 
+#if (OBJ_ANALYSIS_TEST == 0)
 /*******************************************************************************
 *                                   SOUND TASK
 *******************************************************************************/
@@ -778,6 +806,7 @@ static void vTaskSound ( void *pvParameter )
         vTaskDelay(xDelay250ms);
     }
 }
+#endif
 
 /*******************************************************************************
 *                                 BATTERY LEVEL TASK
