@@ -422,7 +422,7 @@ static void vTaskGPS ( void *pvParameter )
         
         longitudeInDec = min2dec( longitude );
         latitudeInDec = min2dec( latitude ) * -1;
-        
+
         #if DEBUG_PRINT_MODE == 1
             //sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
             //UART_PutString( tempStr );
@@ -684,14 +684,18 @@ static void vTaskDirection ( void *pvParameter )
         if (bearing > M_PI) bearing = bearing - 2*M_PI;     // make bearing  within -M_PI to M_PI
         direction = difference*M_PI/180 - bearing;
         
-        sprintf(tempStr, "%.2f\t%.2f", diffDistance, direction * 180/M_PI);
+        //restrict angle to range of -pi to pi
+        if (direction > M_PI) direction = direction - 2*M_PI; 
+        if (direction < -M_PI) direction = direction + 2*M_PI;
+        
+        sprintf(tempStr, "%.2f\n", direction * 180/M_PI);
         UART_PutString( tempStr );
         
         if ( (direction * 180/M_PI ) > 45)
         {
             //turn right
             sayRight();
-            sprintf(tempStr, "turn right 45\n");
+            sprintf(tempStr, "\nturn right 45\n");
             UART_PutString( tempStr );
             vTaskDelay(xDelay2000ms);
         }
@@ -699,7 +703,7 @@ static void vTaskDirection ( void *pvParameter )
         {
             // turn left
             sayLeft();
-            sprintf(tempStr, "turn left 45\n");
+            sprintf(tempStr, "\ntrun left 45\n");
             UART_PutString( tempStr );
             vTaskDelay(xDelay2000ms);
         }
