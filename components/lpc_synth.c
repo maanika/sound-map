@@ -358,8 +358,7 @@ CY_ISR(synth_isr)
 * @par Summary
 *    Reverses bit order of given byte from LSB to MSB for easier processing.
 *******************************************************************************/
-static uint8_t
-reverse_bit_order(uint8_t byte)
+static uint8_t reverse_bit_order(uint8_t byte)
 {
 	/* 76543210 */
 	byte = (byte >> 4) | (byte << 4); // Swap in groups of 4

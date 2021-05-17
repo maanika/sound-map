@@ -43,13 +43,13 @@
 /*******************************************************************************
 *                               TASK PRIORITIES
 *******************************************************************************/
-#define TASK_GPS_PRIO           (configMAX_PRIORITIES - 2)
+#define TASK_GPS_PRIO           (configMAX_PRIORITIES - 1)
 #define TASK_PATH_PRIO          (configMAX_PRIORITIES - 3)
 #define TASK_DIRECTION_PRIO     (configMAX_PRIORITIES - 4)
 #define TASK_SOUND_PRIO         (configMAX_PRIORITIES - 5)
 #define TASK_SPEECH_PRIO        (configMAX_PRIORITIES - 6)
 #define TASK_BATTERY_LEVEL_PRIO (configMAX_PRIORITIES - 7)
-#define TASK_BUTTON_PRIO        (configMAX_PRIORITIES - 1)
+#define TASK_BUTTON_PRIO        (configMAX_PRIORITIES - 2)
 #define TASK_LED_PRIO           (configMAX_PRIORITIES - 10)
 #if OBJ_DETECT_MODE == 1
     #define TASK_MOTOR_PRIO     (configMAX_PRIORITIES - 8)
@@ -132,6 +132,8 @@ int batteryLevelValue = 0;
 
 /* TEMPORARY FOR TESTING */
 double diffDistance;
+double distFromPrevCheckpoint;
+double distBetweenCheckpoints;
 
 /*******************************************************************************
 *                               TASK HANDLERS
@@ -482,14 +484,29 @@ static void vTaskPath( void *pvParameter )
         {
             nextCheckpoint = path.checkpointCurrent+1;
             if ( nextCheckpoint == 15 ) { nextCheckpoint = 0; }
+            
             diffDistance = distance( latitudeInDec, longitudeInDec, 
                 path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
+            
+            distFromPrevCheckpoint = distance( path.checkpointLat[path.checkpointCurrent], path.checkpointLon[path.checkpointCurrent],
+                latitudeInDec, longitudeInDec );
+            
+            distBetweenCheckpoints = distance( path.checkpointLat[path.checkpointCurrent], path.checkpointLon[path.checkpointCurrent],
+                path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
+            
         }
         if ( path.checkpointOperation == 1 )
         {
             nextCheckpoint = path.checkpointCurrent-1;
             if ( nextCheckpoint == -1 ) { nextCheckpoint = 14; }
+            
             diffDistance = distance(latitudeInDec, longitudeInDec, 
+                path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
+           
+            distFromPrevCheckpoint = distance( path.checkpointLat[path.checkpointCurrent], path.checkpointLon[path.checkpointCurrent],
+                latitudeInDec, longitudeInDec );
+            
+            distBetweenCheckpoints = distance( path.checkpointLat[path.checkpointCurrent], path.checkpointLon[path.checkpointCurrent],
                 path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
         }
         
@@ -618,7 +635,6 @@ static void vTaskSpeech ( void *pvParameter )
         {
             taskYIELD ();
         }
-        
     }
 }
 
@@ -702,6 +718,7 @@ static void vTaskSound ( void *pvParameter )
     float IIDattenuation;
     const TickType_t xDelay250ms = pdMS_TO_TICKS(250UL);
     int printCount = 0;
+    double pathError;
     
     sineWaveInitialize(400);
 
@@ -716,7 +733,12 @@ static void vTaskSound ( void *pvParameter )
         
         // print every second
         if ( ( printCount%2 ) == 0 ){
-            sprintf(tempStr, "%.2f\t%.2f\n", diffDistance, offsetAngle*180/M_PI);    
+            
+            pathError = diffDistance*sin(
+            acos( ( diffDistance*diffDistance + distBetweenCheckpoints*distBetweenCheckpoints - distFromPrevCheckpoint*distFromPrevCheckpoint ) / ( 2*diffDistance*distBetweenCheckpoints) )
+            );
+            
+            sprintf(tempStr, "%.2f    %.2f    %.2f\n", diffDistance, pathError,offsetAngle*180/M_PI);    
             UART_PutString(tempStr);
         }
         leftFast = offsetAngle < 0; //left is earlier then right
