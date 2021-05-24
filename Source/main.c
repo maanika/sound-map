@@ -688,14 +688,14 @@ static void vTaskDirection ( void *pvParameter )
         if (direction > M_PI) direction = direction - 2*M_PI; 
         if (direction < -M_PI) direction = direction + 2*M_PI;
         
-        sprintf(tempStr, "%.2f\n", direction * 180/M_PI);
-        UART_PutString( tempStr );
+        //sprintf(tempStr, "%.2f\n", direction * 180/M_PI);
+        //UART_PutString( tempStr );
         
         if ( (direction * 180/M_PI ) > 45)
         {
             //turn right
             sayRight();
-            sprintf(tempStr, "\nturn right 45\n");
+            //sprintf(tempStr, "\nturn right 45\n");
             UART_PutString( tempStr );
             vTaskDelay(xDelay2000ms);
         }
@@ -703,7 +703,7 @@ static void vTaskDirection ( void *pvParameter )
         {
             // turn left
             sayLeft();
-            sprintf(tempStr, "\ntrun left 45\n");
+            //sprintf(tempStr, "\ntrun left 45\n");
             UART_PutString( tempStr );
             vTaskDelay(xDelay2000ms);
         }
