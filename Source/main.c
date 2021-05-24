@@ -317,14 +317,14 @@ int main( void )
             while(1){};
         }
         
-        err = xTaskCreate ( vTaskLED, "task LED ", TASK_LED_STK_SIZE, (void*) 0, TASK_LED_PRIO, &vTaskLEDHandle );
+        /*err = xTaskCreate ( vTaskLED, "task LED ", TASK_LED_STK_SIZE, (void*) 0, TASK_LED_PRIO, &vTaskLEDHandle );
         if ( err != pdPASS ){
             #if DEBUG_PRINT_MODE == 1
                 sprintf( tempStr, "Failed to Create Task LED\n" );
                 UART_PutString( tempStr );
             #endif
             while(1){};
-        }
+        }*/
         
         #if OBJ_DETECT_MODE == 1
             err = xTaskCreate(vTaskDistance, "task distance", TASK_DIS_STK_SIZE, (void*) 0, TASK_DIS_PRIO, &xTaskDistanceHandle);
@@ -422,6 +422,7 @@ static void vTaskGPS ( void *pvParameter )
         
         longitudeInDec = min2dec( longitude );
         latitudeInDec = min2dec( latitude ) * -1;
+
         
         #if DEBUG_PRINT_MODE == 1
             //sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
@@ -676,7 +677,7 @@ static void vTaskDirection ( void *pvParameter )
         /* Calculate bearing */
         bearing = atan2(fYm,fXm);
         if (bearing < 0) bearing += 2*M_PI;
-        //sprintf(tempStr, "Bearings: %.2f", bearing*180/M_PI);
+        sprintf(tempStr, " %.2f", bearing*180/M_PI);
         //UART_PutString( tempStr );
         
         /* Calculate angle between current and next checkpoint coordinates (degrees) */
@@ -738,7 +739,7 @@ static void vTaskSound ( void *pvParameter )
             acos( ( diffDistance*diffDistance + distBetweenCheckpoints*distBetweenCheckpoints - distFromPrevCheckpoint*distFromPrevCheckpoint ) / ( 2*diffDistance*distBetweenCheckpoints) )
             );
             
-            sprintf(tempStr, "%.2f    %.2f    %.2f\n", diffDistance, pathError,offsetAngle*180/M_PI);    
+            //sprintf(tempStr, "%.2f    %.2f    %.2f\n", diffDistance, pathError,offsetAngle*180/M_PI);    
             UART_PutString(tempStr);
         }
         leftFast = offsetAngle < 0; //left is earlier then right
