@@ -1,20 +1,53 @@
-// NOTES MAX STABLE FREQ IS 19KHZ
-// MIN STABLE FREQ 100Hz
-//  ______________________________________
-// |          |           |       |       |
-// | Pin Name | Pin       | Value | Ear   |
-// |----------|-----------|-------|-------|
-// | Vout1    | Pin3.5    | 1     | LEFT  |
-// | Vout2    | Pin3.7    | 2     | RIGHT |
-// |__________|___________|_______|_______|
-
+/*******************************************************************************
+* Written by Maanika Kenneth Koththioda, for PSoC5LP
+* Last Modified on 4/1/2021
+*
+* File: sound.c
+* Version: 1.0.0
+*
+* Brief: Sound Generator - Sine waves with arbitary phase
+*        frequency, and amplitude.
+*
+* Target device:
+*    CY8C5888LTI - LP097
+*
+* Code Tested With:
+*    - Silicon: PSoC 5LP
+*    - IDE: PSoC Creator 4.3
+*    - Compiler: GCC 5.4
+*
+* Notes:
+*  MAX STABLE FREQ IS 19KHZ
+*  MIN STABLE FREQ 100Hz
+*  ______________________________________
+* |          |           |       |       |
+* | Pin Name | Pin       | Value | Ear   |
+* |----------|-----------|-------|-------|
+* | Vout1    | Pin3.5    | 1     | LEFT  |
+* | Vout2    | Pin3.7    | 2     | RIGHT |
+* |__________|___________|_______|_______|
+*
+* Sources:
+*   Freuency control is obtained using the Digital Direct Sysnthesis component
+*   from:
+*https://community.cypress.com/t5/Code-Examples/DDS24-24-bit-DDS-arbitrary-frequency-generator-component/td-p/46572?start=0&tstart=0
+*
+*******************************************************************************
+*   Included Headers
+*******************************************************************************/
 #include "project.h"
 #include "stdio.h"
 #include "sound.h"
 
+/*******************************************************************************
+*   Constant definitions
+*******************************************************************************/
 
+/* DMA Configs */
 #define DMA_BYTES_PER_BURST 1
 #define DMA_REQUEST_PER_BURST 1
+
+/* Sine Table Length */
 #define TABLE_LENGTH   720
 
 /* Sine look up table with 180 points stored in Flash */
@@ -175,10 +208,17 @@ CYCODE uint8 sineTable_2[TABLE_LENGTH] = { };
 /* The DMA Channel */
 uint8 DMA_1_Chan;
 uint8 DMA_2_Chan;
+
 /* The DMA Task Description */
 uint8 DMA_1_TD[1];
 uint8 DMA_2_TD[1];
 
+/*******************************************************************************
+* Function Name: startSoundComponents
+********************************************************************************
+* Summary:
+*    starts required peripherals.
+*******************************************************************************/
 void startSoundComponents(void)
 {
     /* Start Components */
@@ -189,6 +229,12 @@ void startSoundComponents(void)
     DDS24_1_Start();
 }
 
+/*******************************************************************************
+* Function Name: dmaConfiguration
+********************************************************************************
+* Summary:
+*    initializes DMA configurations and setup.
+*******************************************************************************/
 void dmaConfiguration(void)
 {
     /* DMA_1 configuration */
@@ -228,6 +274,12 @@ void dmaConfiguration(void)
     CyDmaChEnable(DMA_2_Chan, 1);
 }
 
+/*******************************************************************************
+* Function Name: sineWaveInitialize
+********************************************************************************
+* Summary:
+*    initializes two seperate sine tables for each channel (left/right ear)
+*******************************************************************************/
 void sineWaveInitialize(int freq)
 {
     /* Set DDS24_1 parameters */
@@ -235,18 +287,26 @@ void sineWaveInitialize(int freq)
     
     for (int i = 0; i < 90; i++)  // populate sineWave
     {
-        sineTable_1[i] = sineTable[i]  ;          // sine   
+        sineTable_1[i] = sineTable[i]  ;    // sine   
         sineTable_2[i] = sineTable[i]  ;    // sine+phase
     }
 }
 
+/*******************************************************************************
+* Function Name: updateSineWave
+********************************************************************************
+* Summary:
+*    phase of the sine wave is controlled by the input offset cycles.
+*    the amplitude is controlled by multiplying the sine table with input.
+*    function performs for each waveform (left/right) using input 'waveNum'. 
+*******************************************************************************/
 int updateSineWave(uint8 phase, double att,int waveNum)
 {
     if (waveNum == 1) 
     {
-        for (int i = 0; i < TABLE_LENGTH; i++)  // populate sineWave
+        for (int i = 0; i < TABLE_LENGTH; i++) // populate sineWave
         {
-            sineTable_1[i] = sineTable[i+phase] * att ;          // sine  + phase
+            sineTable_1[i] = sineTable[i+phase] * att ; // sine  + phase
         }   
         return 1;
     }
@@ -254,9 +314,11 @@ int updateSineWave(uint8 phase, double att,int waveNum)
     {
         for (int i = 0; i < TABLE_LENGTH; i++)  // populate sineWave
         {
-            sineTable_2[i] = sineTable[i+phase] *att ;          // sine  + phase
+            sineTable_2[i] = sineTable[i+phase] *att ; // sine  + phase
         } 
         return 1;
     }
     else return 0;
 }
+
+/* [] END OF FILE */

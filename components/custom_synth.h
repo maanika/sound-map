@@ -2,7 +2,7 @@
 * Written by Maanika Kenneth Koththioda, for PSoC5LP
 * Last Modified on 3/1/2021
 *
-* File: custom_synth.c
+* File: custom_synth.h
 * Version: 1.0.0
 *
 * Brief: Project dependent LPC audio constants and functions.
@@ -76,8 +76,14 @@ void sayFix();
 // Return: none 
 void sayBatteryPercent(int number);
 
-
+// Brief: Vocalize weolcome message.
+// Param: none.
+// Return: none 
 void sayWelocome();
+
+// Brief: Vocalize a pause.
+// Param: none.
+// Return: none 
 void sayPause();
 
 #endif

@@ -1,11 +1,11 @@
 /*******************************************************************************
-* Written by : Maanika Kenneth Koththigoda (kennethmaanika@gmail.com)
+* Written by : Maanika Kenneth Koththigoda
 * Last Modified : 13/03/2021
 *
 * @file    LSM303D.c
 * @version 1.0.0
 *
-* @brief Library for PSoC compatible devices that interfaces with LSM303D compass 
+* @brief Library for PSoC compatible devices that interfaces with LSM303DHLC compass 
 *        and accelerometer ICs on Adafruit boards. It allows to read the raw 
 *        accelerometer and magnetometer data from LSM303DHLC.
 *
@@ -26,6 +26,8 @@
 *    I2C Read and Write functions using low level API 
 *    is taken from https://community.cypress.com/docs/DOC-15336
 *
+*******************************************************************************
+*   Included Headers
 *******************************************************************************/
 #include "project.h"
 #include "lsm303d.h"
@@ -238,10 +240,12 @@ static short magnetometer(int axis){
 *******************************************************************************/
 void compassRead(compassRaw *compassData)
 {   
+    // magnetometer readings
     compassData->m_x = magnetometer(XAXIS);
     compassData->m_y = magnetometer(YAXIS);
     compassData->m_z = magnetometer(ZAXIS);
    
+    // accelerometer readings
     compassData->a_x = accelerometer(XAXIS);
     compassData->a_y = accelerometer(YAXIS);
     compassData->a_z = accelerometer(ZAXIS);   

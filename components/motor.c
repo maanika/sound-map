@@ -20,6 +20,8 @@
 *   PWM_2
 *   Clock_PWM
 *
+********************************************************************************
+*   Included Headers
 *******************************************************************************/
 #include <project.h>
 #include "stdio.h"
@@ -67,7 +69,7 @@ void setMotors(int distance1, int distance2, int distance3)
     }
     else
     {
-        PWM_2_WriteCompare( 0 );
+        PWM_2_WriteCompare(0);
     }
     if ( distance2 <= MAX_DISTANCE )
     {
@@ -95,6 +97,5 @@ void setMotors(int distance1, int distance2, int distance3)
     }
     return;
 }
-
 
 /* [] END OF FILE */

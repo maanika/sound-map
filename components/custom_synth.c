@@ -457,20 +457,33 @@ static const uint8_t welcome[] = {
 };
 
 
+/*******************************************************************************
+* Function Name: sayWelocome
+********************************************************************************
+* Summary:
+*    This function vocalizes says "welcome to soundmap".
+*******************************************************************************/
 void sayWelocome()
 {
 synth_say(welcome);
 }
 
+/*******************************************************************************
+* Function Name: sayPause
+********************************************************************************
+* Summary:
+*    This function vocalizes a pause.
+*******************************************************************************/
 void sayPause()
 {
 synth_say(PAUSE);
 }
+
 /*******************************************************************************
 * Function Name: sayHargraveLibrary
 ********************************************************************************
 * Summary:
-*    
+*    This function vocalizes a Location.
 *******************************************************************************/
 void sayHargraveLibrary()
 {
@@ -481,7 +494,7 @@ void sayHargraveLibrary()
 * Function Name: sayCampbellHall
 ********************************************************************************
 * Summary:
-*    
+*    This function vocalizes a Location.
 *******************************************************************************/
 void sayCampbellHall()
 {
@@ -492,7 +505,7 @@ void sayCampbellHall()
 * Function Name: sayCampusCentre
 ********************************************************************************
 * Summary:
-*    
+*    This function vocalizes a Location.
 *******************************************************************************/
 void sayCampusCentre()
 {
@@ -503,7 +516,7 @@ void sayCampusCentre()
 * Function Name: sayArrived
 ********************************************************************************
 * Summary:
-*    
+*    This function vocalizes when the user has arrived at the destination.
 *******************************************************************************/
 void sayArrived()
 {
@@ -514,7 +527,7 @@ void sayArrived()
 * Function Name: sayFix
 ********************************************************************************
 * Summary:
-*    
+*    This function vocalizes if the GPS fix is lost.
 *******************************************************************************/
 void sayFix()
 {
@@ -525,7 +538,7 @@ void sayFix()
 * Function Name: sayBatteryPercent
 ********************************************************************************
 * Summary:
-*    
+*    This function vocalizes a number from 0 to 90 (in tens).
 *******************************************************************************/
 void sayBatteryPercent(int number)
 {

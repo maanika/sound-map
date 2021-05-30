@@ -49,6 +49,7 @@ void startUltrasonicSensors( void )
 {
     ADC_SAR_Seq_1_Start();
 }
+
 /*******************************************************************************
 * Function Name: distanceReading
 ********************************************************************************
@@ -59,7 +60,7 @@ void startUltrasonicSensors( void )
 *******************************************************************************/
 void distanceReading(ultrasonicSensor *readings)
 {
-    // Initialize variables
+    /* Initialize variables */
     int16 adc_result1 = 0;
     int16 adc_result2 = 0;
     int16 adc_result3 = 0;
@@ -71,6 +72,7 @@ void distanceReading(ultrasonicSensor *readings)
     /* Start conversion */
     ADC_SAR_Seq_1_StartConvert();
     
+    /* Send range signal */
     Ultrasonic_Rx_Write(1);
     CyDelayUs(20);
     Ultrasonic_Rx_Write(0);

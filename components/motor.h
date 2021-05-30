@@ -2,7 +2,7 @@
 * Written by : Maanika Kenneth Koththigoda
 * Last Modified : 15/03/2021
 *
-* File:    motor.c
+* File:    motor.h
 * Version: 1.0.0
 *
 * Brief: Start motors and turn them on according to the values passed.
@@ -20,19 +20,17 @@
 *   PWM_2
 *   Clock_PWM
 *
-*******************************************************************************/
-
-/*******************************************************************************
+********************************************************************************
 *   Function Declarations
 *******************************************************************************/
-// Bried 
-// Param
-// Return
+// Brief: Start PWM components.
+// Param: none.
+// Return: none.
 void startMotors();
 
-// Brief 
-// Param
-// Return
+// Brief: Set the Duty cycle according to the passed parameters.
+// Param: Distances from Ultrasonic readings
+// Return: none
 void setMotors(int num1, int num2, int num3);
 
 /* [] END OF FILE */
