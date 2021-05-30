@@ -5,7 +5,7 @@
 * File:     mode.h
 * Version:  1.0.0
 *
-* Brief: Activate/Deactivate different running mode of the program.
+* Brief: Activate/Deactivate different running modes of the program.
 *
 * Target device:
 *    CY8C5888LTI - LP097
@@ -26,7 +26,14 @@
 /*******************************************************************************
 *   Macros and #define Constants
 *******************************************************************************/
+    // Run Debgging mode (allow print statements).
+    // This should be truned off when device is under actual use, since print
+    // statements slows the system down.(only set to 1 when debugging/testing).
     #define DEBUG_PRINT_MODE 1
-    #define OBJ_DETECT_MODE  0
+    
+    // Run Obstacle Detection System.
+    #define OBJ_DETECT_MODE  1
 
 #endif
+
+/* [] END OF FILE */

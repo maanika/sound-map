@@ -18,7 +18,6 @@
 * Components:
 *    - ADC_SAR       [ADC_Battery]
 *    - cy_pins       [Battery_pin]
-*
 *******************************************************************************/
 #ifndef BATTERY_LEVEL_H
 	#define BATTERY_LEVEL_H

@@ -37,7 +37,9 @@
 * Function Name:
 ********************************************************************************
 * Summary:
-*    
+*   Checks distance from current location to starting locations.
+*   Closest distance will be set as the starting location.
+*   Set operation (+/-) using starting location and destination.
 *******************************************************************************/
 void pathStart ( struct Path *path, double latitudeInDec, double longitudeInDec )
 {

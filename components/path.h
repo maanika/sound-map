@@ -24,6 +24,9 @@
     #include "project.h"
     #include "FreeRTOS.h"
 
+/*******************************************************************************
+*   Structures
+*******************************************************************************/
     /* Path planning variables */
     struct Path{
         const double checkpointLat[15];
@@ -40,9 +43,10 @@
 *   Function Declarations
 *******************************************************************************/
     // Brief: Path start
-    // Param:  
-    // Return: none 
+    // Param:  path structure, and current corrdinates.
+    // Return: sets data in path structure for use in main program. 
     void pathStart ( struct Path *path, double latitudeInDec, double longitudeInDec );
 
 #endif
+
 /* [] END OF FILE */

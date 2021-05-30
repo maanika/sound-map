@@ -5,7 +5,7 @@
 * Modified by Maanika Kenneth Koththioda, for use on PSoC5LP
 * Last Modified on 25/10/2020
 *
-* File:     lpc_synth.c
+* File:     lpc_synth.h
 * Version:  1.0.0
 *
 * Brief: Project independent LPC audio decoder implementation.

@@ -2,7 +2,7 @@
 * Written by : Maanika Kenneth Koththigoda (kennethmaanika@gmail.com)
 * Last Modified : 4/11/2020
 *
-* File: distance.c
+* File: distance.h
 * version: 1.0.0
 *
 * Brief: for PSoC devices that interfaces HRLV-MaxSonar-EZ0. Takes readings of two
@@ -25,24 +25,24 @@
 *     Reading from analog pins is taken from this guide
 *    https://www.esipfed.org/student-fellow-blog/diy-sensing-anatomy-of-an-analog-sensor
 *
+*******************************************************************************
+*   Structures
 *******************************************************************************/
-
+// Ultrasonic Array with 3 sensors, hence 3 readings.
 typedef struct ultrasonicSensor{
     double distance1;
     double distance2;
     double distance3;
 } ultrasonicSensor;
 
-
 /*******************************************************************************
 *   Function Declarations
 *******************************************************************************/
-
+// Breif: Start Peripherals for Ultrasonic sensors.
 void startUltrasonicSensors( void );
 
-// brief Takes Distance Readings from two HRLV-MaxSonar-EZ0 sensors
-// return distance readings
+// Brief: Takes Distance Readings from two HRLV-MaxSonar-EZ0 sensors
+// Return: distance readings
 void distanceReading( ultrasonicSensor *readings);
-
 
 /* [] END OF FILE */

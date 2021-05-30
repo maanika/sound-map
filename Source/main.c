@@ -1,4 +1,21 @@
 /*******************************************************************************
+* Written by Maanika Kenneth Koththioda, for PSoC5LP
+* Last Modified on 30/05/2021
+*
+* File: main.c
+* Version: 1.0.0
+*
+* Brief: SoundMap. (Sound Navigator + Obstacle Detection)
+*
+* Target device:
+*    CY8C5888LTI - LP097
+*
+* Code Tested With:
+*    - Silicon: PSoC 5LP
+*    - IDE: PSoC Creator 4.3
+*    - Compiler: GCC 5.4
+*
+*******************************************************************************
 *                               INCLUDED HEADERS
 *******************************************************************************/
 #include "project.h"
@@ -15,6 +32,7 @@
 #include "battery_level.h"
 #include "mode.h"
 #include "path.h"
+
 #if OBJ_DETECT_MODE == 1
     #include "distance.h"
     #include "motor.h"
@@ -30,7 +48,7 @@
 *******************************************************************************/
 #define TABLE_LENGTH 720
 #define SOUND_VOLUME 1.5
-#define PATH_PROXIMITY 10
+#define PATH_PROXIMITY 5 // (meters) For way point updates and destination check
 
 #define ON();       { AMux_1_Start(); AMux_2_Start(); }
 #define OFF();      { AMux_1_DisconnectAll(); AMux_2_DisconnectAll();}
@@ -71,7 +89,6 @@
     #define TASK_MOTOR_STK_SIZE     200
     #define TASK_DIS_STK_SIZE       200
 #endif
-
 
 /*******************************************************************************
 *                               GLOBAL VARIABLES
@@ -152,6 +169,9 @@ TaskHandle_t vTaskLEDHandle           = NULL;
 SemaphoreHandle_t xGPSSemaphore;
 SemaphoreHandle_t xUARTMutex;
 SemaphoreHandle_t xBatteryLevelMutex;
+SemaphoreHandle_t xDirectionMutex;
+SemaphoreHandle_t xCoordinatesMutex;
+SemaphoreHandle_t xObstacleDistanceMutex;
 
 /*******************************************************************************
 *                               QUEUE HANDLERS
@@ -269,6 +289,9 @@ int main( void )
     xGPSSemaphore = xSemaphoreCreateCounting( 10, 0 );
     xUARTMutex = xSemaphoreCreateMutex();
     xBatteryLevelMutex = xSemaphoreCreateMutex();
+    xDirectionMutex = xSemaphoreCreateMutex();
+    xCoordinatesMutex = xSemaphoreCreateMutex();
+    xObstacleDistanceMutex = xSemaphoreCreateMutex();
     xButtonTimeQueue = xQueueCreate( 1, sizeof(portFLOAT) );
     
     /* Creating Tasks */
@@ -415,9 +438,13 @@ static void vTaskGPS ( void *pvParameter )
             ew = p[1] == ',' ? '?' : p[1];
         }
         
-        longitudeInDec = min2dec( longitude );
-        latitudeInDec = min2dec( latitude ) * -1;
-        
+        xSemaphoreTake( xCoordinatesMutex, portMAX_DELAY );
+        {
+            longitudeInDec = min2dec( longitude );
+            latitudeInDec = min2dec( latitude ) * -1;
+        }
+        xSemaphoreGive( xCoordinatesMutex );
+
         #if DEBUG_PRINT_MODE == 1
             sprintf(tempStr, "longitude: %Lf    latitude: %Lf\n", longitudeInDec, latitudeInDec);
             UART_PutString( tempStr );
@@ -480,15 +507,25 @@ static void vTaskPath( void *pvParameter )
         {
             nextCheckpoint = path.checkpointCurrent+1;
             if ( nextCheckpoint == 15 ) { nextCheckpoint = 0; }
-            diffDistance = distance( latitudeInDec, longitudeInDec, 
-                path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
+                    
+            xSemaphoreTake( xCoordinatesMutex, portMAX_DELAY );
+            {
+                diffDistance = distance( latitudeInDec, longitudeInDec, 
+                    path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
+            }
+            xSemaphoreGive( xCoordinatesMutex );
         }
         if ( path.checkpointOperation == 1 )
         {
             nextCheckpoint = path.checkpointCurrent-1;
             if ( nextCheckpoint == -1 ) { nextCheckpoint = 14; }
-            diffDistance = distance(latitudeInDec, longitudeInDec, 
-                path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
+            
+            xSemaphoreTake( xCoordinatesMutex, portMAX_DELAY );
+            {
+                diffDistance = distance(latitudeInDec, longitudeInDec, 
+                    path.checkpointLat[nextCheckpoint],path.checkpointLon[nextCheckpoint] );
+            }
+            xSemaphoreGive( xCoordinatesMutex );
         }
         
         if ( diffDistance < PATH_PROXIMITY || path.atDestination == pdTRUE )
@@ -658,27 +695,32 @@ static void vTaskDirection ( void *pvParameter )
         /* Calculate bearing */
         bearing = atan2(fYm,fXm);
         if (bearing < 0) bearing += 2*M_PI;
-        sprintf(tempStr, "Bearings: %.2f", bearing*180/M_PI);
-        UART_PutString( tempStr );
         
-        /* Calculate angle between current and next checkpoint coordinates (degrees) */
-        difference = GPSbearing(latitudeInDec, longitudeInDec ,
-            path.checkpointLat[nextCheckpoint], path.checkpointLon[nextCheckpoint]);
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "Bearings: %.2f", bearing*180/M_PI);
+            UART_PutString( tempStr );
+        #endif
         
-        sprintf(tempStr, "      Difference: %.2f",difference );
-        UART_PutString( tempStr );
+        xSemaphoreTake( xCoordinatesMutex, portMAX_DELAY );
+        {
+            /* Calculate angle between current and next checkpoint coordinates (degrees) */
+            difference = GPSbearing(latitudeInDec, longitudeInDec ,
+                path.checkpointLat[nextCheckpoint], path.checkpointLon[nextCheckpoint]);
+        }
+        xSemaphoreGive( xCoordinatesMutex );
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "      Difference: %.2f",difference );
+            UART_PutString( tempStr );
+         #endif
         
-        /* calculate the direction need to walk in to get to destination (radians) */
-        if (bearing > M_PI) bearing = bearing - 2*M_PI;     // make bearing  within -M_PI to M_PI
-        direction = difference*M_PI/180 - bearing;
-        
-        //sprintf(tempStr, "      Direction: %.3f", direction * 180/M_PI);
-        //UART_PutString( tempStr );
-        
-        /*// TEST program for offsetAngle
-        direction = direction + 2*(M_PI/180); // set angle to direction need to go in
-        if (direction > M_PI) direction = -M_PI;
-        // End of test program */
+        xSemaphoreTake( xDirectionMutex, portMAX_DELAY );
+        {
+            /* calculate the direction need to walk in to get to destination (radians) */
+            if (bearing > M_PI) bearing = bearing - 2*M_PI;     // make bearing  within -M_PI to M_PI
+            direction = difference*M_PI/180 - bearing;
+        }
+        xSemaphoreGive( xDirectionMutex );
+
         
         vTaskDelay(xDelay250ms);
     }
@@ -706,13 +748,19 @@ static void vTaskSound ( void *pvParameter )
     
     while (1)
     {
-        offsetAngle = direction;
+        xSemaphoreTake( xDirectionMutex, portMAX_DELAY );
+        {
+            offsetAngle = direction;
+        }
+        xSemaphoreGive( xDirectionMutex );
         //restrict angle to range of -pi to pi
         if (offsetAngle > M_PI) offsetAngle = offsetAngle - 2*M_PI; 
         if (offsetAngle < -M_PI) offsetAngle = offsetAngle + 2*M_PI;
-            
-        sprintf(tempStr, "          offsetAngle: %.2f\n", offsetAngle*180/M_PI);    
-        UART_PutString(tempStr);
+        
+        #if DEBUG_PRINT_MODE == 1
+            sprintf(tempStr, "          offsetAngle: %.2f\n", offsetAngle*180/M_PI);    
+            UART_PutString(tempStr);
+        #endif
         
         leftFast = offsetAngle < 0; //left is earlier then right
         rightFast = offsetAngle > 0; //right is earlier then left
@@ -721,41 +769,28 @@ static void vTaskSound ( void *pvParameter )
         if (offsetAngle >= -M_PI/2 && offsetAngle <= M_PI/2 ) freq = freqFront;
         else freq = freqBack;
         
-        //sprintf(tempStr, "frequency: %d\n", freq);
-        //UART_PutString(tempStr);
-        
         //calculate time delay
         ITDtime = 0.0002970892271*( offsetAngle + sin(offsetAngle));
         phaseDelay = 2 * M_PI * freq * ITDtime; // in radians
         
-        //sprintf(tempStr, "ITDTime: %.7f     phaseDelay: %.2f", ITDtime, phaseDelay*180/M_PI);
-        //UART_PutString(tempStr);
-        
         // Find offset (cycles) to delay using resolution of sinewave table.
         if (phaseDelay < 0) phaseDelay = phaseDelay * -1;
         phaseDelayCycles = (int) ( phaseDelay * 180/M_PI) / 0.5;
-        //sprintf(tempStr, "      phaseDelayCycles: %d\n", phaseDelayCycles);
-        //UART_PutString(tempStr);
-        
+
         // Calculate amplitude attenuation
         IIDattenuation = ( cos( offsetAngle ) );
         if  (IIDattenuation < 0) IIDattenuation = IIDattenuation*-1;
-        //sprintf(tempStr, "ILDatt: %.2f\n", IIDattenuation);
-        //UART_PutString(tempStr);
         
         if(rightFast)
         {
             // implement time delay on left (1)
             // right(2) will lead while left(1) will lag
-            // make left side quieter
+            // make left side quieter.
             updateSineWave(0, IIDattenuation/SOUND_VOLUME, 1);
             updateSineWave(phaseDelayCycles, 1/SOUND_VOLUME, 2);
 
             // update frequency
             DDS24_1_SetFrequency((freq / 2.4965) * TABLE_LENGTH);
-            
-            //sprintf(tempStr, "RIGHT");
-            //UART_PutString(tempStr);
         }
         else
         {
@@ -767,8 +802,6 @@ static void vTaskSound ( void *pvParameter )
             
             // update frequency
             DDS24_1_SetFrequency((freq / 2.4965) * TABLE_LENGTH);   
-            //sprintf(tempStr, "LEFT");
-            //UART_PutString(tempStr);
         }
         vTaskDelay(xDelay250ms);
     }
@@ -926,7 +959,12 @@ void vTaskDistance(void *pvParameter)
 
     while(1)
     {
-        distanceReading( &ultrasonicReadings );
+        xSemaphoreTake( xObstacleDistanceMutex, portMAX_DELAY );
+        {
+            distanceReading( &ultrasonicReadings );
+        }
+        xSemaphoreGive( xObstacleDistanceMutex );
+        
         #if DEBUG_PRINT_MODE == 1
             sprintf(tempStr, "Distance 1 : %lf cm         Distance 2 : %lf cm           Distance 3 : %lf cm\n",
                 ultrasonicReadings.distance1, ultrasonicReadings.distance2, ultrasonicReadings.distance3);
@@ -949,8 +987,12 @@ void vTaskMotor(void *pvParameter)
     
     while(1)
     {
-        setMotors( (int)ultrasonicReadings.distance1, (int)ultrasonicReadings.distance2, (int)ultrasonicReadings.distance3);
-       
+        xSemaphoreTake( xObstacleDistanceMutex, portMAX_DELAY );
+        {
+            setMotors( (int)ultrasonicReadings.distance1, (int)ultrasonicReadings.distance2, (int)ultrasonicReadings.distance3);
+        }
+        xSemaphoreGive( xObstacleDistanceMutex );
+        
         /* Task should execute every 2000 milliseconds exactly. */
         vTaskDelay( xDelay2093ms );
     }
