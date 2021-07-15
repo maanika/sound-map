@@ -1,4 +1,7 @@
 # sound-map
+
+SoundMap: Sound Navigation and Obstacle Detection to Aid the Visually Impaired
+
 My Final Year Project at Monash University
 
 ![poster](https://user-images.githubusercontent.com/55540980/125713165-3c22787e-e9f5-491e-bf6f-0a4345ae3677.jpg)
